@@ -56,36 +56,52 @@ const CalendarView: React.FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 't' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        const target = e.target as HTMLElement
-        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-          e.preventDefault()
-          goToToday()
-        }
+      const target = e.target as EventTarget & { tagName?: string }
+      const isInputField =
+        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'
+
+      if (
+        e.key === 't' &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !isInputField
+      ) {
+        e.preventDefault()
+        goToToday()
       } else if (e.key === 'ArrowLeft' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault()
         navigatePrevious()
       } else if (e.key === 'ArrowRight' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault()
         navigateNext()
-      } else if (e.key === 'd' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        const target = e.target as HTMLElement
-        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-          e.preventDefault()
-          setViewMode('day')
-        }
-      } else if (e.key === 'w' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        const target = e.target as HTMLElement
-        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-          e.preventDefault()
-          setViewMode('week')
-        }
-      } else if (e.key === 'm' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        const target = e.target as HTMLElement
-        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-          e.preventDefault()
-          setViewMode('month')
-        }
+      } else if (
+        e.key === 'd' &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !isInputField
+      ) {
+        e.preventDefault()
+        setViewMode('day')
+      } else if (
+        e.key === 'w' &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !isInputField
+      ) {
+        e.preventDefault()
+        setViewMode('week')
+      } else if (
+        e.key === 'm' &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !isInputField
+      ) {
+        e.preventDefault()
+        setViewMode('month')
       }
     }
 

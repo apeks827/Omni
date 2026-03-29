@@ -124,6 +124,7 @@ const AppContent: React.FC = () => {
           <Route path="/board" element={<TaskBoardContainer />} />
           <Route path="/list" element={<TaskList />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/calendar" element={<CalendarView />} />
           <Route path="*" element={<Navigate to="/board" replace />} />
         </Routes>
       </main>

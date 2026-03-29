@@ -39,7 +39,10 @@ export default [
         File: 'readonly',
         HTMLButtonElement: 'readonly',
         HTMLInputElement: 'readonly',
+        HTMLElement: 'readonly',
+        EventTarget: 'readonly',
         KeyboardEvent: 'readonly',
+        React: 'readonly',
       },
     },
     plugins: {
