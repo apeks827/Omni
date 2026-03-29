@@ -101,13 +101,20 @@ router.get('/templates/:id', async (req: AuthRequest, res: Response) => {
     )
 
     if (!template) {
-      return res.status(404).json({ error: 'Template not found' })
+      const error = new AppError(
+        ErrorCodes.TASK_NOT_FOUND,
+        'Template not found',
+        { template_id: id },
+        404
+      )
+      const { status, body } = handleError(error)
+      return res.status(status).json(body)
     }
 
     res.json(template)
   } catch (error) {
-    console.error('Error fetching handoff template:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    const { status, body } = handleError(error, 'Failed to fetch template')
+    res.status(status).json(body)
   }
 })
 

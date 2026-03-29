@@ -4,6 +4,7 @@ import { Text, Button, Card, Stack } from '../design-system'
 import { apiClient } from '../services/api'
 import ScheduleExplanationTooltip from './ScheduleExplanationTooltip'
 import LowEnergyModeButton from './LowEnergyModeButton'
+import { formatRelativeDate, getDateColor } from '../utils/dateFormat'
 
 type ViewMode = 'day' | 'week' | 'month'
 

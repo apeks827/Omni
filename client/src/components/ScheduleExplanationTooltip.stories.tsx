@@ -18,6 +18,6 @@ export const Default: Story = {
     taskId: 'task-123',
     onAccept: () => console.log('Accepted'),
     onReject: () => console.log('Rejected'),
-    onManualEdit: (time) => console.log('Manual edit:', time),
+    onManualEdit: time => console.log('Manual edit:', time),
   },
 }

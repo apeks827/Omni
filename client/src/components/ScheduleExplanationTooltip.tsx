@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { ScheduleExplanation, SchedulingFactor } from '../../../shared/types/scheduling'
+import {
+  ScheduleExplanation,
+  SchedulingFactor,
+} from '../../../shared/types/scheduling'
 import { Button, Card, Text, Stack } from '../design-system'
 import { colors, spacing } from '../design-system/tokens'
 
@@ -17,7 +20,9 @@ export default function ScheduleExplanationTooltip({
   onManualEdit,
 }: ScheduleExplanationTooltipProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [explanation, setExplanation] = useState<ScheduleExplanation | null>(null)
+  const [explanation, setExplanation] = useState<ScheduleExplanation | null>(
+    null
+  )
   const [isLoading, setIsLoading] = useState(false)
   const [manualTime, setManualTime] = useState('')
 
@@ -116,8 +121,13 @@ export default function ScheduleExplanationTooltip({
                         Suggested time
                       </Text>
                       <Text weight="medium">
-                        {new Date(explanation.suggestedTime.start).toLocaleString()} -{' '}
-                        {new Date(explanation.suggestedTime.end).toLocaleTimeString()}
+                        {new Date(
+                          explanation.suggestedTime.start
+                        ).toLocaleString()}{' '}
+                        -{' '}
+                        {new Date(
+                          explanation.suggestedTime.end
+                        ).toLocaleTimeString()}
                       </Text>
                       <Text variant="caption" color="gray600">
                         ({explanation.suggestedTime.duration} minutes)
@@ -125,7 +135,11 @@ export default function ScheduleExplanationTooltip({
                     </div>
 
                     <div>
-                      <Text variant="caption" weight="medium" style={{ marginBottom: spacing.sm }}>
+                      <Text
+                        variant="caption"
+                        weight="medium"
+                        style={{ marginBottom: spacing.sm }}
+                      >
                         Decision factors:
                       </Text>
                       <Stack direction="vertical" spacing="sm">
@@ -138,7 +152,9 @@ export default function ScheduleExplanationTooltip({
                               gap: spacing.sm,
                             }}
                           >
-                            <span style={{ fontSize: '18px' }}>{getFactorIcon(factor.type)}</span>
+                            <span style={{ fontSize: '18px' }}>
+                              {getFactorIcon(factor.type)}
+                            </span>
                             <div style={{ flex: 1 }}>
                               <div
                                 style={{
@@ -153,7 +169,9 @@ export default function ScheduleExplanationTooltip({
                                 <Text
                                   variant="caption"
                                   weight="semibold"
-                                  style={{ color: getWeightColor(factor.weight) }}
+                                  style={{
+                                    color: getWeightColor(factor.weight),
+                                  }}
                                 >
                                   {factor.weight}%
                                 </Text>
@@ -194,14 +212,17 @@ export default function ScheduleExplanationTooltip({
                       </Stack>
 
                       <div>
-                        <Text variant="caption" style={{ marginBottom: spacing.xs }}>
+                        <Text
+                          variant="caption"
+                          style={{ marginBottom: spacing.xs }}
+                        >
                           Or set specific time:
                         </Text>
                         <Stack direction="horizontal" spacing="sm">
                           <input
                             type="datetime-local"
                             value={manualTime}
-                            onChange={(e) => setManualTime(e.target.value)}
+                            onChange={e => setManualTime(e.target.value)}
                             style={{
                               flex: 1,
                               padding: spacing.sm,

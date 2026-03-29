@@ -15,14 +15,14 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
-    onToggle: (enabled) => console.log('Low energy mode:', enabled),
+    onToggle: enabled => console.log('Low energy mode:', enabled),
     initialEnabled: false,
   },
 }
 
 export const Enabled: Story = {
   args: {
-    onToggle: (enabled) => console.log('Low energy mode:', enabled),
+    onToggle: enabled => console.log('Low energy mode:', enabled),
     initialEnabled: true,
   },
 }
