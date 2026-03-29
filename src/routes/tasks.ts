@@ -10,7 +10,9 @@ import {
   quickTaskSchema,
 } from '../validation/schemas.js'
 import handoffService from '../services/handoff/handoff.service.js'
+import queueService from '../services/queue/queue.service.js'
 import { extractTaskData } from '../services/nlp/extractor.js'
+import { scheduleTask } from '../services/scheduling/scheduler.js'
 
 const router = Router()
 
@@ -253,6 +255,7 @@ router.put(
         due_date,
       } = req.body
       const workspaceId = req.workspaceId
+      const userId = req.userId
 
       if (project_id) {
         const projectExists = await hasWorkspaceResource(
@@ -303,6 +306,18 @@ router.put(
 
       const updatedTask = result.rows[0]
 
+      if (status === 'completed' && userId) {
+        try {
+          await queueService.autoAssignNext(
+            updatedTask.id,
+            userId,
+            workspaceId as string
+          )
+        } catch (queueError) {
+          console.error('Error auto-assigning next task:', queueError)
+        }
+      }
+
       if (status) {
         try {
           await handoffService.triggerHandoffsForTask(
@@ -317,6 +332,60 @@ router.put(
       res.json(updatedTask)
     } catch (error) {
       console.error('Error updating task:', error)
+      res.status(500).json({ error: 'Internal server error' })
+    }
+  }
+)
+
+router.post(
+  '/:id/schedule',
+  validateParams(uuidParamSchema),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const id = req.params.id as string
+      const workspaceId = req.workspaceId as string
+      const userId = req.userId as string
+
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' })
+      }
+
+      const taskResult = await query(
+        'SELECT id, workspace_id FROM tasks WHERE id = $1',
+        [id]
+      )
+
+      if (taskResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Task not found' })
+      }
+
+      if (taskResult.rows[0].workspace_id !== workspaceId) {
+        return res.status(403).json({ error: 'Forbidden' })
+      }
+
+      const scheduleResult = await scheduleTask({
+        taskId: id,
+        userId: userId,
+        workspaceId: workspaceId,
+      })
+
+      await query(
+        'INSERT INTO schedule_slots (user_id, task_id, start_time, end_time, status) VALUES ($1, $2, $3, $4, $5)',
+        [
+          userId,
+          id,
+          scheduleResult.suggested_slot.start_time,
+          scheduleResult.suggested_slot.end_time,
+          'scheduled',
+        ]
+      )
+
+      res.json(scheduleResult)
+    } catch (error: any) {
+      if (error.message === 'Task not found') {
+        return res.status(404).json({ error: 'Task not found' })
+      }
+      console.error('Error scheduling task:', error)
       res.status(500).json({ error: 'Internal server error' })
     }
   }

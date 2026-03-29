@@ -11,6 +11,7 @@ import authRouter from './routes/auth.js'
 import tasksRouter from './routes/tasks.js'
 import aiRouter from './routes/ai.js'
 import handoffRouter from './routes/handoff.js'
+import queueRouter from './routes/queue.js'
 
 const __dirname = path.resolve()
 
@@ -93,6 +94,7 @@ app.use('/api/labels', labelsRouter)
 app.use('/api/tasks', tasksRouter)
 app.use('/api/ai', aiRouter)
 app.use('/api/handoff', handoffRouter)
+app.use('/api/queue', queueRouter)
 
 const clientDistPath = path.join(__dirname, '..', 'client', 'dist')
 app.use(express.static(clientDistPath))
