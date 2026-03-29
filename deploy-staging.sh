@@ -15,6 +15,13 @@ if [ ! -f ".env.staging" ]; then
 	exit 1
 fi
 
+if [ -n "$(git status --porcelain)" ]; then
+	echo "ERROR: Uncommitted changes detected. Commit or stash before deploying to staging."
+	echo "Uncommitted files:"
+	git status --porcelain
+	exit 1
+fi
+
 echo "Step 1: Building Docker image locally..."
 docker build -t omni:staging .
 

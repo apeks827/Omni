@@ -66,6 +66,12 @@ router.post('/register', authRateLimit, async (req, res) => {
     // Generate a new workspace ID for the user
     const workspaceId = randomUUID()
 
+    // Create workspace first
+    await query(
+      'INSERT INTO workspaces (id, name, created_at, updated_at) VALUES ($1, $2, NOW(), NOW())',
+      [workspaceId, `${name}'s Workspace`]
+    )
+
     // Create user
     const result = await query(
       'INSERT INTO users (id, email, password_hash, name, workspace_id, created_at, updated_at) VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW(), NOW()) RETURNING id, email, name, workspace_id, created_at, updated_at',
