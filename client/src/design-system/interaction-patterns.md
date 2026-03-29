@@ -7,6 +7,7 @@ This document defines the core interaction patterns that embody the **Zero-Frict
 > "От пользователя требуется только одно действие: **выгрузить намерение**."
 
 ### Core Behaviors:
+
 1. **Single-Action Intent Capture**
    - Users enter intentions via a global command palette (`Cmd/Ctrl + K`)
    - No initial categorization required (task/habit/routine determined by system)
@@ -25,6 +26,7 @@ This document defines the core interaction patterns that embody the **Zero-Frict
      - "Начать бегать по утрам" → Running habit, scheduled for weekday mornings
 
 ### UI Components:
+
 - **Command Palette** (global shortcut)
 - **Quick Add Bar** (always-visible on mobile)
 - **Voice Input** (microphone toggle in input fields)
@@ -35,6 +37,7 @@ This document defines the core interaction patterns that embody the **Zero-Frict
 > "Календарь — это не статичная сетка, а **динамическая река**."
 
 ### Core Behaviors:
+
 1. **Automatic Time-Blocking**
    - Focus work scheduled during user's peak productivity hours
    - Low-energy tasks moved to natural breaks
@@ -54,6 +57,7 @@ This document defines the core interaction patterns that embody the **Zero-Frict
    - Weather: Outdoor tasks shifted based on conditions
 
 ### UI Components:
+
 - **Elastic Time Blocks** (visual dragging with smart snapping)
 - **Flow Indicators** (subtle arrows showing task movement)
 - **Energy Level Overlay** (color-coded daily capacity)
@@ -62,16 +66,19 @@ This document defines the core interaction patterns that embody the **Zero-Frict
 ## 3. Integration Patterns
 
 ### Habits as Connective Tissue
+
 - Habits automatically inserted between focused work blocks
 - Examples: Hydration prompts, stretch breaks, mindfulness moments
 - Visualized as small dots or thin bands on timeline
 
 ### Pomodoro 2.0
+
 - Timer starts when relevant tools are opened (IDE, editor, design software)
 - Break suggestions based on actual work intensity, not fixed intervals
 - Long breaks proposed after 90-minute focus sessions
 
 ### Home/Awareness Routines
+
 - Location-triggered reminders (water plants when home Thursday evening)
 - Context-sensitive suggestions (read articles when on couch with phone)
 
@@ -80,12 +87,14 @@ This document defines the core interaction patterns that embody the **Zero-Frict
 > "Система максимально проста, но **никогда не бывает «черным ящиком»**."
 
 ### Explanation Surfaces:
+
 - **Why This Time?** tooltip on any calendar item
 - **Schedule Breakdown** view (tap day header to see influencing factors)
 - **Energy Forecast** (predicted focus/energy levels throughout day)
 - **Control Sliders** (manual adjustment of system aggressiveness)
 
 ### User Overrides:
+
 - "Сегодня я ленюсь" button → instantly switches to Low Energy Mode
 - Manual rescheduling with one drag preserves all smart features
 - Focus mode toggle disables all non-critical interruptions
@@ -93,6 +102,7 @@ This document defines the core interaction patterns that embody the **Zero-Frict
 ## 5. Implementation Guidelines
 
 ### For Developers:
+
 1. **Intent Parser Service**
    - Separate microservice for NLU processing
    - Configurable rules for different languages/cultures
@@ -109,6 +119,7 @@ This document defines the core interaction patterns that embody the **Zero-Frict
    - Opt-in permissions with clear value exchange
 
 ### For Designers:
+
 1. **Progressive Disclosure**
    - Advanced settings hidden by default
    - Power-user features accessible via settings/search

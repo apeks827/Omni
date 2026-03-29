@@ -9,6 +9,7 @@ import { useViewStore } from './stores/viewStore'
 import TaskList from './components/TaskList'
 import TaskBoardContainer from './components/TaskBoardContainer'
 import Dashboard from './components/Dashboard'
+import CalendarView from './components/CalendarView'
 import FeedbackWidget from './components/FeedbackWidget'
 import { Text, Button, colors, spacing } from './design-system'
 
@@ -72,24 +73,40 @@ const AppContent: React.FC = () => {
               Board
             </Button>
             <Button
-              variant={view === 'list' ? 'primary' : 'ghost'}
+              variant={view === 'dashboard' ? 'primary' : 'ghost'}
               size="sm"
-              onClick={() => setView('list')}
+              onClick={() => setView('dashboard')}
               style={{
-                backgroundColor: view === 'list' ? colors.white : 'transparent',
-                color: view === 'list' ? colors.dark : colors.gray700,
+                backgroundColor:
+                  view === 'dashboard' ? colors.white : 'transparent',
+                color: view === 'dashboard' ? colors.dark : colors.gray700,
                 boxShadow:
-                  view === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  view === 'dashboard' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
               }}
             >
-              List
+              Dashboard
+            </Button>
+            <Button
+              variant={view === 'calendar' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setView('calendar')}
+              style={{
+                backgroundColor:
+                  view === 'calendar' ? colors.white : 'transparent',
+                color: view === 'calendar' ? colors.dark : colors.gray700,
+                boxShadow:
+                  view === 'calendar' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              }}
+            >
+              Calendar
             </Button>
             <Button
               variant={view === 'dashboard' ? 'primary' : 'ghost'}
               size="sm"
               onClick={() => setView('dashboard')}
               style={{
-                backgroundColor: view === 'dashboard' ? colors.white : 'transparent',
+                backgroundColor:
+                  view === 'dashboard' ? colors.white : 'transparent',
                 color: view === 'dashboard' ? colors.dark : colors.gray700,
                 boxShadow:
                   view === 'dashboard' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',

@@ -35,7 +35,10 @@ const TaskList: React.FC = () => {
   }
 
   const handleCreateTask = async (
-    taskData: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'workspace_id' | 'creator_id'>
+    taskData: Omit<
+      Task,
+      'id' | 'created_at' | 'updated_at' | 'workspace_id' | 'creator_id'
+    >
   ) => {
     try {
       const newTask = await apiClient.createTask(taskData)

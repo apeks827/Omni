@@ -6,4 +6,4 @@
   impact: Reduced engineering capacity, potential release delays
   owner: Organizational Effectiveness Lead
   status: investigating
-  related_tasks: ["OMN-151"]  # Previous error recovery task
+  related_tasks: ['OMN-151'] # Previous error recovery task

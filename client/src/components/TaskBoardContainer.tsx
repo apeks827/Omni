@@ -29,7 +29,10 @@ const TaskBoardContainer: React.FC = () => {
   }
 
   const handleCreateTask = async (
-    taskData: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'workspace_id' | 'creator_id'>
+    taskData: Omit<
+      Task,
+      'id' | 'created_at' | 'updated_at' | 'workspace_id' | 'creator_id'
+    >
   ) => {
     try {
       const newTask = await apiClient.createTask(taskData)
@@ -51,7 +54,9 @@ const TaskBoardContainer: React.FC = () => {
       const statusOrder: Task['status'][] = ['todo', 'in_progress', 'done']
       const currentIndex = statusOrder.indexOf(task.status)
       const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length]
-      const updatedTask = await apiClient.updateTask(taskId, { status: nextStatus })
+      const updatedTask = await apiClient.updateTask(taskId, {
+        status: nextStatus,
+      })
 
       setTasks(currentTasks =>
         currentTasks.map(currentTask =>
@@ -95,12 +100,23 @@ const TaskBoardContainer: React.FC = () => {
 
   return (
     <Stack style={{ padding: '24px 0 40px' }} align="center">
-      <Stack style={{ maxWidth: '1400px', width: '100%', padding: '0 20px' }} direction="vertical" spacing="lg">
-        <Stack direction="horizontal" justify="between" align="center" wrap={true} style={{ marginBottom: '16px' }}>
+      <Stack
+        style={{ maxWidth: '1400px', width: '100%', padding: '0 20px' }}
+        direction="vertical"
+        spacing="lg"
+      >
+        <Stack
+          direction="horizontal"
+          justify="between"
+          align="center"
+          wrap={true}
+          style={{ marginBottom: '16px' }}
+        >
           <div>
             <Text variant="h2">Task board</Text>
             <Text variant="body" style={{ color: '#6c757d', marginTop: '8px' }}>
-              Track work from backlog to completion with honest status visibility.
+              Track work from backlog to completion with honest status
+              visibility.
             </Text>
           </div>
           <Button
@@ -111,15 +127,24 @@ const TaskBoardContainer: React.FC = () => {
           </Button>
         </Stack>
 
-        <Stack direction="horizontal" style={{ flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+        <Stack
+          direction="horizontal"
+          style={{ flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}
+        >
           {[
             { label: 'Total', value: counts.total },
             { label: 'To do', value: counts.todo },
             { label: 'In progress', value: counts.inProgress },
             { label: 'Done', value: counts.done },
           ].map(metric => (
-            <Card key={metric.label} padding="lg" style={{ flex: 1, minWidth: '200px' }}>
-              <Text variant="caption" style={{ color: '#6c757d' }}>{metric.label}</Text>
+            <Card
+              key={metric.label}
+              padding="lg"
+              style={{ flex: 1, minWidth: '200px' }}
+            >
+              <Text variant="caption" style={{ color: '#6c757d' }}>
+                {metric.label}
+              </Text>
               <Text variant="h1" style={{ marginTop: '6px' }}>
                 {metric.value}
               </Text>
@@ -128,7 +153,14 @@ const TaskBoardContainer: React.FC = () => {
         </Stack>
 
         {error && (
-          <Card padding="md" style={{ marginBottom: '16px', backgroundColor: '#f8d7da', borderColor: '#f5c6cb' }}>
+          <Card
+            padding="md"
+            style={{
+              marginBottom: '16px',
+              backgroundColor: '#f8d7da',
+              borderColor: '#f5c6cb',
+            }}
+          >
             <Text variant="body" style={{ color: '#721c24' }}>
               {error}
             </Text>

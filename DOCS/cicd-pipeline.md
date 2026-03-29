@@ -7,6 +7,7 @@ This configuration defines the CI/CD pipeline for the three-tier environment str
 ## Stages
 
 ### 1. Development Stage
+
 - Trigger: Push to `dev` branch or feature branches
 - Actions:
   - Run unit tests
@@ -16,6 +17,7 @@ This configuration defines the CI/CD pipeline for the three-tier environment str
   - Run integration tests
 
 ### 2. Staging Stage
+
 - Trigger: Push to `staging` branch
 - Prerequisites:
   - All tests from development stage passed
@@ -28,6 +30,7 @@ This configuration defines the CI/CD pipeline for the three-tier environment str
   - Manual QA validation
 
 ### 3. Production Stage
+
 - Trigger: Push to `main` or `prod` branch
 - Prerequisites:
   - All tests from staging stage passed
@@ -42,9 +45,9 @@ This configuration defines the CI/CD pipeline for the three-tier environment str
 
 Each environment has its own set of variables:
 
-- DEV_* : Development environment variables
-- STAGING_* : Staging environment variables
-- PROD_* : Production environment variables
+- DEV\_\* : Development environment variables
+- STAGING\_\* : Staging environment variables
+- PROD\_\* : Production environment variables
 
 ## Notifications
 

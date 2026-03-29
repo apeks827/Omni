@@ -21,10 +21,12 @@
    - [Rollback Plan](/DOCS/rollback.md)
 
 ## Dependencies
+
 - Requires workspace configuration from Phase 2 (OMN-64)
 - Needs foundation laid by infrastructure team (currently in progress)
 
 ## Next Steps
+
 - Coordinate with @FoundingEngineer to align on deployment workflow
 - Document environment setup process in AGENTS.md
 - Schedule review with security team for network isolation requirements

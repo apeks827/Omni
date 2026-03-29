@@ -18,7 +18,9 @@ const Dashboard: React.FC = () => {
         setData(dashboardData)
         setError(null)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load dashboard')
+        setError(
+          err instanceof Error ? err.message : 'Failed to load dashboard'
+        )
       } finally {
         setLoading(false)
       }
@@ -49,18 +51,21 @@ const Dashboard: React.FC = () => {
 
   if (!data) return null
 
-  const errorRate = data.agents.active > 0 
-    ? ((data.agents.error / data.agents.active) * 100).toFixed(1)
-    : '0.0'
+  const errorRate =
+    data.agents.active > 0
+      ? ((data.agents.error / data.agents.active) * 100).toFixed(1)
+      : '0.0'
 
   return (
     <div style={{ padding: spacing.xl }}>
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: spacing.lg,
-        marginBottom: spacing.xl
-      }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: spacing.lg,
+          marginBottom: spacing.xl,
+        }}
+      >
         <MetricCard
           title="Agent Error State"
           value={data.agents.error}
@@ -88,39 +93,56 @@ const Dashboard: React.FC = () => {
       </div>
 
       {data.agents.error > 0 && (
-        <div style={{
-          backgroundColor: colors.light,
-          border: `2px solid ${colors.danger}`,
-          borderRadius: '8px',
-          padding: spacing.lg,
-          marginBottom: spacing.lg
-        }}>
-          <Text variant="h3" style={{ marginBottom: spacing.sm, color: colors.danger }}>
+        <div
+          style={{
+            backgroundColor: colors.light,
+            border: `2px solid ${colors.danger}`,
+            borderRadius: '8px',
+            padding: spacing.lg,
+            marginBottom: spacing.lg,
+          }}
+        >
+          <Text
+            variant="h3"
+            style={{ marginBottom: spacing.sm, color: colors.danger }}
+          >
             Error State Alert
           </Text>
           <Text variant="body" style={{ color: colors.danger }}>
-            {data.agents.error} agent{data.agents.error !== 1 ? 's are' : ' is'} currently in error state. 
-            This may impact task completion and delivery metrics.
+            {data.agents.error} agent{data.agents.error !== 1 ? 's are' : ' is'}{' '}
+            currently in error state. This may impact task completion and
+            delivery metrics.
           </Text>
         </div>
       )}
 
-      <div style={{
-        backgroundColor: colors.bg.subtle,
-        borderRadius: '8px',
-        padding: spacing.lg,
-        border: `1px solid ${colors.border.subtle}`
-      }}>
+      <div
+        style={{
+          backgroundColor: colors.bg.subtle,
+          borderRadius: '8px',
+          padding: spacing.lg,
+          border: `1px solid ${colors.border.subtle}`,
+        }}
+      >
         <Text variant="h3" style={{ marginBottom: spacing.md }}>
           System Overview
         </Text>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: spacing.md,
+          }}
+        >
           <StatRow label="Active Agents" value={data.agents.active} />
           <StatRow label="Paused Agents" value={data.agents.paused} />
           <StatRow label="Open Tasks" value={data.tasks.open} />
           <StatRow label="Blocked Tasks" value={data.tasks.blocked} />
           <StatRow label="Pending Approvals" value={data.pendingApprovals} />
-          <StatRow label="Active Incidents" value={data.budgets.activeIncidents} />
+          <StatRow
+            label="Active Incidents"
+            value={data.budgets.activeIncidents}
+          />
         </div>
       </div>
     </div>
@@ -134,30 +156,40 @@ interface MetricCardProps {
   trend: 'healthy' | 'warning' | 'critical' | 'neutral'
 }
 
-const MetricCard: React.FC<MetricCardProps> = ({ title, value, subtitle, trend }) => {
+const MetricCard: React.FC<MetricCardProps> = ({
+  title,
+  value,
+  subtitle,
+  trend,
+}) => {
   const trendColors = {
     healthy: colors.success,
     warning: colors.warning,
     critical: colors.danger,
-    neutral: colors.gray500
+    neutral: colors.gray500,
   }
 
   return (
-    <div style={{
-      backgroundColor: colors.white,
-      border: `1px solid ${colors.border.subtle}`,
-      borderRadius: '8px',
-      padding: spacing.lg,
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-    }}>
+    <div
+      style={{
+        backgroundColor: colors.white,
+        border: `1px solid ${colors.border.subtle}`,
+        borderRadius: '8px',
+        padding: spacing.lg,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      }}
+    >
       <Text variant="body" color="gray600" style={{ marginBottom: spacing.xs }}>
         {title}
       </Text>
-      <Text variant="h1" style={{ 
-        fontSize: '2.5rem', 
-        marginBottom: spacing.xs,
-        color: trendColors[trend]
-      }}>
+      <Text
+        variant="h1"
+        style={{
+          fontSize: '2.5rem',
+          marginBottom: spacing.xs,
+          color: trendColors[trend],
+        }}
+      >
         {value}
       </Text>
       <Text variant="caption" style={{ color: colors.gray500 }}>
@@ -173,14 +205,20 @@ interface StatRowProps {
 }
 
 const StatRow: React.FC<StatRowProps> = ({ label, value }) => (
-  <div style={{ 
-    display: 'flex', 
-    justifyContent: 'space-between',
-    padding: `${spacing.sm} 0`,
-    borderBottom: `1px solid ${colors.border.subtle}`
-  }}>
-    <Text variant="body" color="gray700">{label}</Text>
-    <Text variant="body" style={{ fontWeight: 600 }}>{value}</Text>
+  <div
+    style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      padding: `${spacing.sm} 0`,
+      borderBottom: `1px solid ${colors.border.subtle}`,
+    }}
+  >
+    <Text variant="body" color="gray700">
+      {label}
+    </Text>
+    <Text variant="body" style={{ fontWeight: 600 }}>
+      {value}
+    </Text>
   </div>
 )
 

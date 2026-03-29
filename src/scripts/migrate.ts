@@ -13,35 +13,35 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
 })
 
-async function runMigrations() {
+export async function runMigrations() {
   const client = await pool.connect()
-  
+
   try {
     const migrationsDir = join(__dirname, '../../migrations')
     const files = await readdir(migrationsDir)
-    const sqlFiles = files
-      .filter(f => f.endsWith('.sql'))
-      .sort()
-    
+    const sqlFiles = files.filter(f => f.endsWith('.sql')).sort()
+
     let applied = []
     try {
       const result = await client.query('SELECT version FROM schema_migrations')
       applied = result.rows
     } catch (error) {
-      // If table doesn't exist, create it first
       console.log('Schema migrations table does not exist yet, creating it...')
-      const initialMigrationSql = await readFile(join(migrationsDir, '00_create_migrations_table.sql'), 'utf-8')
+      const initialMigrationSql = await readFile(
+        join(migrationsDir, '00_create_migrations_table.sql'),
+        'utf-8'
+      )
       await client.query(initialMigrationSql)
       console.log('✅ Created schema_migrations table')
     }
     const appliedVersions = new Set(applied.map(r => r.version))
-    
+
     for (const file of sqlFiles) {
       if (appliedVersions.has(file)) {
         console.log(`⏭️  Skipping ${file} (already applied)`)
         continue
       }
-      
+
       await client.query('BEGIN')
       try {
         console.log(`🔄 Applying ${file}...`)
@@ -59,15 +59,21 @@ async function runMigrations() {
         throw error
       }
     }
-    
+
     console.log('\n✨ All migrations completed successfully')
   } catch (error) {
     console.error('❌ Migration failed:', error)
-    process.exit(1)
+    throw error
   } finally {
     client.release()
-    await pool.end()
   }
 }
 
-runMigrations()
+if (require.main === module) {
+  runMigrations()
+    .then(() => pool.end())
+    .catch(() => {
+      pool.end()
+      process.exit(1)
+    })
+}

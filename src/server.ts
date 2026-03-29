@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import dotenv from 'dotenv'
 import path from 'path'
 import { pool } from './config/database.js'
+import { runMigrations } from './scripts/migrate.js'
 import projectsRouter from './routes/projects.js'
 import labelsRouter from './routes/labels.js'
 import authRouter from './routes/auth.js'
@@ -39,12 +40,12 @@ app.use(
         ? {
             useDefaults: true,
             directives: {
-              'default-src': ['\'self\''],
-              'connect-src': ['\'self\'', ...allowedOrigins],
-              'img-src': ['\'self\'', 'data:', 'https:'],
-              'script-src': ['\'self\''],
-              'style-src': ['\'self\'', '\'unsafe-inline\''],
-              'object-src': ['\'none\''],
+              'default-src': ["'self'"],
+              'connect-src': ["'self'", ...allowedOrigins],
+              'img-src': ["'self'", 'data:', 'https:'],
+              'script-src': ["'self'"],
+              'style-src': ["'self'", "'unsafe-inline'"],
+              'object-src': ["'none'"],
               'upgrade-insecure-requests': [],
             },
           }
@@ -102,6 +103,10 @@ app.get('*', (req, res) => {
 
 const startServer = async () => {
   try {
+    console.log('Running database migrations...')
+    await runMigrations()
+    console.log('Database migrations completed')
+
     await pool.query('SELECT NOW()')
     console.log('Database connected successfully')
 

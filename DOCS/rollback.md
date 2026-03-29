@@ -33,12 +33,14 @@
 ## Rollback Triggers
 
 Automatic rollback when:
+
 - Health checks fail for 2 consecutive cycles
 - Error rate exceeds threshold (5% of requests)
 - Latency exceeds SLA by 50%
 - Critical business metric degradation detected
 
 Manual rollback initiated by:
+
 - QA fails smoke test in staging
 - Production monitoring indicates degradation
 - Security issue identified

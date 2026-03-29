@@ -64,7 +64,10 @@ export class HandoffService {
     return result.rows[0]
   }
 
-  async getTemplateById(id: string, workspaceId: string): Promise<HandoffTemplate | null> {
+  async getTemplateById(
+    id: string,
+    workspaceId: string
+  ): Promise<HandoffTemplate | null> {
     const result = await query(
       'SELECT * FROM handoff_templates WHERE id = $1 AND workspace_id = $2',
       [id, workspaceId]
@@ -128,7 +131,10 @@ export class HandoffService {
     return result.rows[0]
   }
 
-  async deleteTemplate(id: string, workspaceId: string): Promise<HandoffTemplate> {
+  async deleteTemplate(
+    id: string,
+    workspaceId: string
+  ): Promise<HandoffTemplate> {
     const result = await query(
       'DELETE FROM handoff_templates WHERE id = $1 AND workspace_id = $2 RETURNING *',
       [id, workspaceId]
@@ -138,15 +144,18 @@ export class HandoffService {
       throw new Error(`Template with id ${id} not found`)
     }
 
-    await query('DELETE FROM handoffs WHERE template_id = $1 AND workspace_id = $2', [
-      id,
-      workspaceId,
-    ])
+    await query(
+      'DELETE FROM handoffs WHERE template_id = $1 AND workspace_id = $2',
+      [id, workspaceId]
+    )
 
     return result.rows[0]
   }
 
-  async triggerHandoffsForTask(task: any, workspaceId: string): Promise<TriggeredHandoff[]> {
+  async triggerHandoffsForTask(
+    task: any,
+    workspaceId: string
+  ): Promise<TriggeredHandoff[]> {
     const templatesResult = await query(
       `SELECT * FROM handoff_templates 
        WHERE workspace_id = $1 

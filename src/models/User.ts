@@ -6,6 +6,7 @@ export interface User {
   workspace_id: string
   timezone?: string
   preferences?: Record<string, unknown>
+  last_activity_at?: Date
   created_at: Date
   updated_at: Date
 }

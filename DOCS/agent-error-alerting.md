@@ -14,6 +14,7 @@ Automated alerting system that notifies relevant teams when Paperclip agents ent
 ## Alert Content
 
 Each alert includes:
+
 - Agent name and ID
 - Timestamp of error state entry
 - Error context (last run ID, error message, stack trace if available)
@@ -23,6 +24,7 @@ Each alert includes:
 ## Routing Rules
 
 Alerts route to:
+
 1. **Agent's direct manager** (from `reportsTo` field)
 2. **Organizational Effectiveness Lead** (if defined in company structure)
 3. **CEO agent** (escalation fallback)
@@ -36,7 +38,9 @@ Alerts route to:
 ## Implementation Options
 
 ### Option 1: Paperclip Platform Integration
+
 Use Paperclip's built-in agent monitoring webhooks:
+
 ```bash
 POST /api/companies/{companyId}/webhooks
 {
@@ -49,14 +53,18 @@ POST /api/companies/{companyId}/webhooks
 ```
 
 ### Option 2: External Monitoring Script
+
 Poll agent status via API and trigger alerts:
+
 ```bash
 # Cron job every 5 minutes
 */5 * * * * /opt/scripts/check-agent-health.sh
 ```
 
 ### Option 3: GitHub Actions Workflow
+
 Add workflow that checks agent health and creates issues:
+
 ```yaml
 name: Agent Health Check
 on:
@@ -82,6 +90,7 @@ jobs:
 ## Testing
 
 Validate alerting system by:
+
 1. Manually pausing an agent with error reason
 2. Verify alert triggers within expected timeframe
 3. Confirm routing to correct recipients

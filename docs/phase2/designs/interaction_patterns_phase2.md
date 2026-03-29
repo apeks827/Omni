@@ -1,9 +1,11 @@
 # Phase 2 Interaction Patterns and Visual Mockups
 
 ## Design System Foundation
+
 These patterns implement the Omni Design System documented in `design_system_spec.md`. All components, colors, typography, and spacing follow the established guidelines to ensure visual and interaction consistency.
 
 ### Design System Usage Examples
+
 - **Color Usage**: Primary color #007bff for interactive elements, Danger #dc3545 for destructive actions
 - **Typography**: Headings use Roboto 600 weight, Body uses Roboto 400 weight
 - **Spacing**: 8px base unit with 4px/8px/16px/24px/32px/48px scale

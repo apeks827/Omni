@@ -9,6 +9,7 @@ export interface Task {
   creator_id?: string
   workspace_id: string
   due_date?: Date
+  duration_minutes?: number
   created_at: Date
   updated_at: Date
 }

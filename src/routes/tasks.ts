@@ -7,8 +7,10 @@ import {
   createTaskSchema,
   updateTaskSchema,
   uuidParamSchema,
+  quickTaskSchema,
 } from '../validation/schemas.js'
 import handoffService from '../services/handoff/handoff.service.js'
+import { extractTaskData } from '../services/nlp/extractor.js'
 
 const router = Router()
 
@@ -98,6 +100,44 @@ router.get(
       res.json(result.rows[0])
     } catch (error) {
       console.error('Error fetching task:', error)
+      res.status(500).json({ error: 'Internal server error' })
+    }
+  }
+)
+
+router.post(
+  '/quick',
+  validate(quickTaskSchema),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { input } = req.body
+      const userId = req.userId
+      const workspaceId = req.workspaceId
+
+      const extracted = extractTaskData(input)
+
+      const result = await query(
+        'INSERT INTO tasks (title, description, status, priority, creator_id, workspace_id, due_date) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        [
+          extracted.title,
+          null,
+          'todo',
+          extracted.priority || 'medium',
+          userId,
+          workspaceId,
+          extracted.due_date,
+        ]
+      )
+
+      res.status(201).json(result.rows[0])
+    } catch (error: any) {
+      if (
+        error.message.includes('empty') ||
+        error.message.includes('exceeds')
+      ) {
+        return res.status(400).json({ error: error.message })
+      }
+      console.error('Error creating quick task:', error)
       res.status(500).json({ error: 'Internal server error' })
     }
   }
@@ -246,7 +286,10 @@ router.put(
 
       if (status) {
         try {
-          await handoffService.triggerHandoffsForTask(updatedTask, workspaceId as string)
+          await handoffService.triggerHandoffsForTask(
+            updatedTask,
+            workspaceId as string
+          )
         } catch (handoffError) {
           console.error('Error triggering handoffs:', handoffError)
         }

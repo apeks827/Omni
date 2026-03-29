@@ -1,9 +1,9 @@
 import { create } from 'zustand'
 
 interface ViewState {
-  view: 'list' | 'board' | 'dashboard'
+  view: 'list' | 'board' | 'dashboard' | 'calendar'
   showFeedbackWidget: boolean
-  setView: (view: 'list' | 'board' | 'dashboard') => void
+  setView: (view: 'list' | 'board' | 'dashboard' | 'calendar') => void
   setShowFeedbackWidget: (show: boolean) => void
 }
 

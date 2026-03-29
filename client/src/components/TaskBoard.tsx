@@ -20,9 +20,24 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
     color: string
     badgeVariant: 'primary' | 'warning' | 'success'
   }> = [
-    { status: 'todo', title: 'To Do', color: colors.primary, badgeVariant: 'primary' },
-    { status: 'in_progress', title: 'In Progress', color: colors.warning, badgeVariant: 'warning' },
-    { status: 'done', title: 'Done', color: colors.success, badgeVariant: 'success' },
+    {
+      status: 'todo',
+      title: 'To Do',
+      color: colors.primary,
+      badgeVariant: 'primary',
+    },
+    {
+      status: 'in_progress',
+      title: 'In Progress',
+      color: colors.warning,
+      badgeVariant: 'warning',
+    },
+    {
+      status: 'done',
+      title: 'Done',
+      color: colors.success,
+      badgeVariant: 'success',
+    },
   ]
 
   const getTasksByStatus = (status: Task['status']) => {
@@ -58,7 +73,9 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
             <Stack spacing="md">
               <Stack direction="horizontal" align="center" justify="between">
                 <Text variant="h4">{column.title}</Text>
-                <Badge variant={column.badgeVariant}>{columnTasks.length}</Badge>
+                <Badge variant={column.badgeVariant}>
+                  {columnTasks.length}
+                </Badge>
               </Stack>
               <Stack spacing="sm">
                 {columnTasks.length === 0 ? (

@@ -89,3 +89,7 @@ export const updateLabelSchema = z.object({
 export const uuidParamSchema = z.object({
   id: z.string().uuid('Invalid ID format'),
 })
+
+export const quickTaskSchema = z.object({
+  input: z.string().min(1).max(5000),
+})

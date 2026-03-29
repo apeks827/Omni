@@ -2,7 +2,12 @@ import React, { useState } from 'react'
 import { Task } from '../types'
 
 interface TaskFormProps {
-  onSubmit: (task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'workspace_id' | 'creator_id'>) => void
+  onSubmit: (
+    task: Omit<
+      Task,
+      'id' | 'created_at' | 'updated_at' | 'workspace_id' | 'creator_id'
+    >
+  ) => void
   onCancel: () => void
 }
 

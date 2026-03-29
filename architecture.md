@@ -362,21 +362,21 @@ Server → Client:
 
 ## Technology Stack Summary
 
-| Layer             | Technology            | Rationale                             |
-| ----------------- | --------------------- | ------------------------------------- |
-| Frontend          | React + TypeScript    | Modern, type-safe, component-based    |
-| Mobile            | React Native          | Code sharing with web frontend        |
-| API Gateway       | Express.js            | Mature, flexible, extensive ecosystem |
-| Intent Processing | OpenAI GPT-4          | State-of-art NLP capabilities         |
-| Scheduling        | Custom Algorithm + ML | Domain-specific optimization          |
-| Database          | PostgreSQL            | Robust, ACID-compliant, JSON support  |
-| Cache             | Redis                 | Fast, versatile, pub/sub support      |
-| Vector DB         | Pinecone              | Managed, scalable, easy integration   |
-| Message Queue     | RabbitMQ              | Reliable, flexible routing            |
-| Monitoring        | Prometheus + Grafana  | Industry standard, powerful           |
-| Deployment        | Kubernetes            | Scalable, resilient, cloud-agnostic   |
+| Layer             | Technology            | Rationale                                     |
+| ----------------- | --------------------- | --------------------------------------------- |
+| Frontend          | React + TypeScript    | Modern, type-safe, component-based            |
+| Mobile            | React Native          | Code sharing with web frontend                |
+| API Gateway       | Express.js            | Mature, flexible, extensive ecosystem         |
+| Intent Processing | OpenAI GPT-4          | State-of-art NLP capabilities                 |
+| Scheduling        | Custom Algorithm + ML | Domain-specific optimization                  |
+| Database          | PostgreSQL            | Robust, ACID-compliant, JSON support          |
+| Cache             | Redis                 | Fast, versatile, pub/sub support              |
+| Vector DB         | Pinecone              | Managed, scalable, easy integration           |
+| Message Queue     | RabbitMQ              | Reliable, flexible routing                    |
+| Monitoring        | Prometheus + Grafana  | Industry standard, powerful                   |
+| Deployment        | Kubernetes            | Scalable, resilient, cloud-agnostic           |
 | Agent Runtime     | Node.js/TypeScript    | Consistent with API layer, good async support |
-| Task Management   | Paperclip             | Integrated task management and orchestration |
+| Task Management   | Paperclip             | Integrated task management and orchestration  |
 
 ## Migration Path from Current Architecture
 

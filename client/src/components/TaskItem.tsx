@@ -2,6 +2,15 @@ import React from 'react'
 import { Task } from '../types'
 import { Card, Text, Button, Badge, Stack } from '../design-system'
 
+const formatDuration = (minutes: number): string => {
+  if (minutes < 60) {
+    return `${minutes}m`
+  }
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
+}
+
 interface TaskItemProps {
   task: Task
   onToggleStatus: (taskId: string) => void
@@ -13,7 +22,9 @@ const TaskItem: React.FC<TaskItemProps> = ({
   onToggleStatus,
   onDelete,
 }) => {
-  const getStatusVariant = (status: Task['status']): 'primary' | 'warning' | 'success' => {
+  const getStatusVariant = (
+    status: Task['status']
+  ): 'primary' | 'warning' | 'success' => {
     switch (status) {
       case 'todo':
         return 'primary'
@@ -26,7 +37,9 @@ const TaskItem: React.FC<TaskItemProps> = ({
     }
   }
 
-  const getPriorityVariant = (priority: Task['priority']): 'secondary' | 'info' | 'warning' | 'danger' => {
+  const getPriorityVariant = (
+    priority: Task['priority']
+  ): 'secondary' | 'info' | 'warning' | 'danger' => {
     switch (priority) {
       case 'low':
         return 'secondary'
@@ -43,33 +56,50 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
   return (
     <Card padding="md" style={{ margin: '10px 0' }}>
-      <Stack direction="horizontal" justify="between" align="center" style={{ marginBottom: '8px' }}>
-        <Text variant={task.status === 'done' ? 'h5' : 'h4'} style={{ textDecoration: task.status === 'done' ? 'line-through' : 'none' }}>
+      <Stack
+        direction="horizontal"
+        justify="between"
+        align="center"
+        style={{ marginBottom: '8px' }}
+      >
+        <Text
+          variant={task.status === 'done' ? 'h5' : 'h4'}
+          style={{
+            textDecoration: task.status === 'done' ? 'line-through' : 'none',
+          }}
+        >
           {task.title}
         </Text>
         <Stack direction="horizontal" spacing="sm">
           <Badge variant={getPriorityVariant(task.priority)} size="sm">
             {task.priority}
           </Badge>
-          <Button 
-            variant={getStatusVariant(task.status)} 
+          {task.duration_minutes && (
+            <Badge variant="secondary" size="sm">
+              {formatDuration(task.duration_minutes)}
+            </Badge>
+          )}
+          <Button
+            variant={getStatusVariant(task.status)}
             size="sm"
             onClick={() => onToggleStatus(task.id)}
           >
             {task.status.replace('_', ' ')}
           </Button>
-          <Button 
-            variant="danger" 
-            size="sm"
-            onClick={() => onDelete(task.id)}
-          >
+          <Button variant="danger" size="sm" onClick={() => onDelete(task.id)}>
             Delete
           </Button>
         </Stack>
       </Stack>
 
       {task.description && (
-        <Text variant="body" style={{ fontStyle: task.status === 'done' ? 'italic' : 'normal', marginBottom: '8px' }}>
+        <Text
+          variant="body"
+          style={{
+            fontStyle: task.status === 'done' ? 'italic' : 'normal',
+            marginBottom: '8px',
+          }}
+        >
           {task.description}
         </Text>
       )}
@@ -79,6 +109,11 @@ const TaskItem: React.FC<TaskItemProps> = ({
         <Text variant="caption">
           Created: {new Date(task.created_at).toLocaleDateString()}
         </Text>
+        {task.duration_minutes && (
+          <Text variant="caption">
+            Duration: {formatDuration(task.duration_minutes)}
+          </Text>
+        )}
       </Stack>
     </Card>
   )

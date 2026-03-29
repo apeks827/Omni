@@ -84,7 +84,7 @@ router.post('/register', authRateLimit, async (req, res) => {
     const token = jwt.sign(
       { userId: user.id, workspaceId: user.workspace_id },
       process.env.JWT_SECRET as string,
-      { expiresIn: '24h' }
+      { expiresIn: '30d' }
     )
 
     res.status(201).json({
@@ -180,7 +180,7 @@ router.post('/login', authRateLimit, async (req, res) => {
     const token = jwt.sign(
       { userId: user.id, workspaceId: user.workspace_id },
       process.env.JWT_SECRET as string,
-      { expiresIn: '24h' }
+      { expiresIn: '30d' }
     )
 
     // Log successful login
