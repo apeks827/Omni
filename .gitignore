@@ -4,3 +4,5 @@ dist/
 *.log
 .DS_Store
 .vite
+staging/.env.staging
+prod/.env.prod
