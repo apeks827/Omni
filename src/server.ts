@@ -40,12 +40,12 @@ app.use(
         ? {
             useDefaults: true,
             directives: {
-              'default-src': ["'self'"],
-              'connect-src': ["'self'", ...allowedOrigins],
-              'img-src': ["'self'", 'data:', 'https:'],
-              'script-src': ["'self'"],
-              'style-src': ["'self'", "'unsafe-inline'"],
-              'object-src': ["'none'"],
+              'default-src': ['self'],
+              'connect-src': ['self', ...allowedOrigins],
+              'img-src': ['self', 'data:', 'https:'],
+              'script-src': ['self'],
+              'style-src': ['self', 'unsafe-inline'],
+              'object-src': ['none'],
               'upgrade-insecure-requests': [],
             },
           }
