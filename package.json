@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Omni task manager",
   "private": true,
-  "type": "commonjs",
   "scripts": {
     "dev": "vite --config client/vite.config.ts",
     "build": "vite build --config client/vite.config.ts",
