@@ -39,9 +39,30 @@ Omni becomes the "personal COO" that transforms chaotic incoming tasks, habits, 
 #### Alternative Flow - Ambiguous Input:
 
 1. System identifies ambiguity in the input
-2. System prompts user with multiple interpretations
-3. User selects the correct interpretation
-4. Proceeds to confirmation screen
+2. System presents interpretation cards showing:
+   - Top 2-3 possible interpretations
+   - Confidence score for each
+   - Key extracted entities for each option
+   - "Not sure? Here's what I understood" context help
+3. User selects correct interpretation OR rephrases input
+4. User can select multiple interpretations to create multiple tasks
+5. Proceeds to confirmation screen
+
+**Disambiguation UX Specifications:**
+
+- **Card Presentation**:
+  - Horizontal scrollable cards on mobile
+  - Side-by-side comparison on desktop
+  - Each card shows: interpretation type, key entities, confidence indicator
+- **Context Help**:
+  - "Why this?" expandable section on each card
+  - Shows which words triggered this interpretation
+  - Example: "I interpreted 'review' as a task because of the word 'to' before it"
+- **Multi-Select Capability**:
+  - Checkbox on each card for bulk selection
+  - "Create all selected" button appears when >1 selected
+  - Individual confirmations still shown for each selected item
+  - User can create 1-N tasks from single ambiguous input
 
 #### Alternative Flow - Missing Information:
 
@@ -143,6 +164,52 @@ Omni becomes the "personal COO" that transforms chaotic incoming tasks, habits, 
 4. System adjusts future decisions based on user preference
 5. System provides explanation of how it will apply this learning
 
+### 1.5 First-Time User Experience
+
+**User Goal**: Get started quickly with Omni and understand core value within first session.
+
+#### Onboarding Flow:
+
+1. **Welcome Screen**
+   - Brief 3-step introduction highlighting key value propositions
+   - "Get Started" CTA to begin setup
+2. **Initial Data Collection** (optional, clearly marked)
+   - Calendar integration prompt (Google/Outlook/Apple)
+   - Notification permission request
+   - Energy level preferences initial survey (3-5 questions)
+3. **First Task Creation**
+   - Guided natural language input experience
+   - System demonstrates parsing and confirmation UI
+   - User creates first task with real-time feedback
+4. **Schedule Overview**
+   - Show user's calendar with Omni-suggested task placement
+   - Explain how system will learn from behavior
+   - Highlight "Explain" button on first schedule
+
+#### Bootstrap Period (First 14 Days):
+
+- **Learning Phase**: System uses conservative defaults
+  - Duration estimates use category averages only
+  - Scheduling is conservative (more padding between tasks)
+  - Energy level defaults to Medium until user provides signals
+- **Quick Wins**: System prioritizes helping user complete tasks
+  - Lower task volume suggestions until confidence builds
+  - Celebrate completions to establish positive reinforcement
+- **Feedback Collection**: Active learning prompts
+  - "Was this time estimate accurate?" after each task
+  - "How did this schedule feel?" weekly prompt
+  - "Adjust energy level" quick action in UI
+
+#### Empty State Handling:
+
+- **No Tasks Yet**: Motivational message + "Add your first task" prompt
+  - Example tasks shown as suggestions (not pre-populated)
+  - Clear call-to-action: "Try saying 'Schedule a 30-minute walk tomorrow morning'"
+- **No Historical Data**: Transparent messaging
+  - "We're still learning your patterns. Here's our initial suggestion based on typical schedules."
+  - Explain what data will improve suggestions
+  - Easy way to provide feedback
+
 ---
 
 ## 2. System Requirements
@@ -156,6 +223,28 @@ Omni becomes the "personal COO" that transforms chaotic incoming tasks, habits, 
 - **FR-1.3**: Classify intent type with 90%+ accuracy for common patterns
 - **FR-1.4**: Handle ambiguous inputs by presenting disambiguation options
 - **FR-1.5**: Support offline/fallback parsing for basic patterns when AI unavailable
+- **FR-1.6**: Estimate task duration based on historical data and task characteristics
+
+**FR-1.6 Duration Estimation Logic:**
+
+- **Algorithm**: Duration estimation uses a weighted combination of:
+  - User's historical completion time for similar tasks (50% weight)
+  - Task category average from anonymized cohort data (25% weight)
+  - User's explicit duration input or adjustment (25% weight)
+- **Similarity Matching**: Tasks are matched using:
+  - Keyword similarity in task title/description (TF-IDF cosine similarity > 0.7)
+  - Same task category/type
+  - Similar context tags (location, energy level)
+  - Time-of-day pattern matching
+- **New User Fallback**: When no historical data exists:
+  - Use category-based defaults (e.g., "Email": 15 min, "Meeting": 30-60 min)
+  - Prompt user for estimated duration during task creation
+  - Apply conservative estimate (slightly over-estimate) until data accumulates
+- **User Override Capability**:
+  - Users can manually set duration at task creation
+  - Users can adjust duration in confirmation screen
+  - System learns from overrides to improve future estimates
+  - Override feedback loop: if user consistently halves estimated time, system recalibrates
 
 #### FR-2: Adaptive Scheduling Engine
 
@@ -164,6 +253,30 @@ Omni becomes the "personal COO" that transforms chaotic incoming tasks, habits, 
 - **FR-2.3**: Balance tasks, habits, and routines according to user preferences
 - **FR-2.4**: Respect user-defined constraints and hard stops
 - **FR-2.5**: Learn from historical completion patterns to improve future scheduling
+
+**FR-2.5 Energy Level Signal Definitions:**
+
+- **Direct Signals** (explicit user input):
+  - Manual energy level toggle (Low/Medium/High)
+  - Task completion rate in current session
+  - Time since last break
+- **Indirect Signals** (inferred from behavior):
+  - Typing speed and pattern changes
+  - Time spent on similar tasks
+  - Error rates and corrections
+  - Session duration without breaks
+- **Quantification Method**:
+  - Energy scored on 1-10 scale (1-3: Low, 4-6: Medium, 7-10: High)
+  - Rolling weighted average of last 10 session signals
+  - Time decay applied: recent signals weighted 2x older signals
+  - Anomaly detection: spike in low-energy signals triggers recalibration
+- **High/Low Energy Indicators**:
+  - High energy: Fast task completion, low error rates, extended focus time
+  - Low energy: Slow response times, frequent breaks, task switching
+- **User Correction**:
+  - Users can manually override energy level at any time
+  - System logs corrections and adjusts weight distribution
+  - User-corrected signals weighted 3x for future calibration
 
 #### FR-3: Context Service
 
@@ -176,6 +289,30 @@ Omni becomes the "personal COO" that transforms chaotic incoming tasks, habits, 
 #### FR-4: Transparency Engine
 
 - **FR-4.1**: Generate human-readable explanations for all scheduling decisions
+
+**FR-4.1 Transparency Deep-Link Specifications:**
+
+- **Depth Levels**:
+  - **Brief (Default)**: 1-2 sentence summary of decision rationale
+    - Example: "Scheduled at 2 PM because you're typically most productive then and have no conflicts."
+  - **Detailed**: Full breakdown of factors and weights
+    - Shows all considered factors with percentage contribution
+    - Lists alternative times that were considered and why rejected
+  - **Comparison View**: Side-by-side "Why this time vs. that time"
+    - User can select alternative time slot to see comparison
+    - Highlights key differences in scoring factors
+- **UI Placement**:
+  - "Explain" icon button next to each scheduled task
+  - Tooltip on hover shows brief explanation
+  - Click opens modal/drawer with detailed view
+  - Deep-link format: `/schedule/{taskId}/explain?depth=detailed`
+- **Comparison View**:
+  - Accessible from detailed explanation modal
+  - "Compare with..." dropdown showing alternative slots
+  - Two-column layout: "Chosen Time" vs "Alternative Time"
+  - Factor-by-factor comparison with visual indicators (✓/✗/~)
+  - "Use this instead" button to reschedule to alternative
+
 - **FR-4.2**: Maintain audit trail of all system decisions
 - **FR-4.3**: Allow user feedback on system decisions
 - **FR-4.4**: Incorporate user feedback into future decision-making
@@ -188,6 +325,31 @@ Omni becomes the "personal COO" that transforms chaotic incoming tasks, habits, 
 - **FR-5.3**: Deliver habit prompts during appropriate windows
 - **FR-5.4**: Respect user notification preferences and quiet hours
 - **FR-5.5**: Support multiple notification channels (push, email, SMS)
+- **FR-5.6**: Prioritize and batch notifications to avoid user fatigue
+
+**FR-5.6 Notification Prioritization System:**
+
+- **Priority Levels**:
+  - **Critical (P1)**: Immediate safety/urgent matters, calendar conflicts, missed deadlines
+  - **High (P2)**: Habit reminders, high-priority task due soon, significant schedule changes
+  - **Medium (P3)**: Regular task reminders, routine follow-ups, low-priority suggestions
+  - **Low (P4)**: Tips, optional insights, delayed/deferrable items
+- **Batching Strategy**:
+  - Collect P3/P4 notifications into 30-minute batches
+  - Batch window starts at user's typical notification peak time
+  - Critical/High notifications sent immediately regardless of batching
+  - Batching respects quiet hours (no batch delivery during quiet time)
+- **Daily Limits**:
+  - Maximum 20 notifications per day per user
+  - P1/P2: Unlimited (critical alerts always through)
+  - P3: Max 10 per day
+  - P4: Max 5 per day
+  - Grace period: If limit reached, new P3/P4 held until next day
+- **Quiet Hours Integration**:
+  - User-configurable quiet hours (default: 10 PM - 7 AM)
+  - During quiet hours: Only P1 notifications delivered
+  - All other notifications queued and delivered after quiet hours end
+  - "Snooze" option: Extend quiet hours by 30/60/120 minutes
 
 #### FR-6: Integration Service
 

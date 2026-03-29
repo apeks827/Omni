@@ -135,6 +135,74 @@ stateDiagram-v2
     Updating --> Monitoring: Resume collection
 ```
 
+### State Transitions: Context Service
+
+| Current State     | Event            | Action                         | Next State        |
+| ----------------- | ---------------- | ------------------------------ | ----------------- |
+| [*]               | System Start     | Initialize context collectors  | Monitoring        |
+| Monitoring        | Signal Data      | Receive sensor/API data        | SignalReceived    |
+| SignalReceived    | Validation       | Check data format/schema       | Filtering         |
+| Filtering         | Pattern Match    | Compare with historical data   | PatternRecognized |
+| Filtering         | Anomaly Detected | Identify significant deviation | EventTriggered    |
+| PatternRecognized | Confidence OK    | Signal within threshold        | Updating          |
+| EventTriggered    | Severity High    | Trigger immediate notification | Updating          |
+| EventTriggered    | Severity Low     | Log for batch processing       | Updating          |
+| Updating          | Send Complete    | Dispatch to Scheduler          | Monitoring        |
+| Monitoring        | Privacy Change   | Reconfigure collectors         | Monitoring        |
+| Monitoring        | Data Timeout     | Retry with backoff             | SignalReceived    |
+
+---
+
+## 5. Notification Service State Model
+
+Managing notification lifecycle from creation to delivery.
+
+### State Diagram: Notification Service
+
+```mermaid
+stateDiagram-v2
+    [*] --> Created: Notification triggered
+    Created --> Pending: Added to queue
+    Pending --> Batching: Below threshold, wait for batch window
+    Pending --> PriorityOverride: P1/P2 notification
+    Batching --> Compiling: Batch window reached
+    Compiling --> Scheduled: Batch ready for delivery
+    PriorityOverride --> Delivering: Immediate send
+    Scheduled --> Delivering: Batch delivery time
+    Delivering --> Sent: Delivery confirmed
+    Delivering --> Failed: Delivery error
+    Failed --> Retrying: Retry attempt
+    Retrying --> Delivering: Retry successful
+    Retrying --> Suppressed: Max retries exceeded
+    Sent --> Acknowledged: User interaction
+    Sent --> Expired: TTL exceeded
+    Acknowledged --> [*]
+    Expired --> [*]
+    Suppressed --> [*]
+```
+
+### State Transitions: Notification Service
+
+| Current State    | Event                | Action                     | Next State       |
+| ---------------- | -------------------- | -------------------------- | ---------------- |
+| [*]              | Notification Trigger | Create notification record | Created          |
+| Created          | Queue Insert         | Add to priority queue      | Pending          |
+| Pending          | Is Priority (P1/P2)  | Bypass batching            | PriorityOverride |
+| Pending          | Batch Window Open    | Begin batch compilation    | Compiling        |
+| Pending          | Threshold Not Met    | Continue waiting           | Batching         |
+| Batching         | Timer Elapsed        | Finalize batch             | Compiling        |
+| Compiling        | Batch Complete       | Schedule delivery          | Scheduled        |
+| PriorityOverride | Delivery Attempt     | Send to gateway            | Delivering       |
+| Scheduled        | Delivery Time        | Send batch to gateway      | Delivering       |
+| Delivering       | ACK Received         | Mark as delivered          | Sent             |
+| Delivering       | Error Response       | Increment retry counter    | Failed           |
+| Failed           | Retry Count < 3      | Wait and retry             | Retrying         |
+| Failed           | Retry Count >= 3     | Stop retry attempts        | Suppressed       |
+| Retrying         | Retry Success        | Send to gateway            | Delivering       |
+| Retrying         | Retry Failure        | Log error, stop            | Suppressed       |
+| Sent             | User Opens           | Record engagement          | Acknowledged     |
+| Sent             | TTL Expired          | Clean up notification      | Expired          |
+
 ---
 
 This document provides technical clarity on how data flows and transitions between states in the Omni ecosystem. Engineering should use these models when implementing state management in the backend (services/models) and frontend (Redux/Context API).
