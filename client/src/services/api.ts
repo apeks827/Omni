@@ -1,6 +1,6 @@
-import { Task } from '../types'
+import { Task, DashboardData } from '../types'
 
-const API_BASE_URL = 'http://localhost:3000/api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 class ApiClient {
   private getAuthToken(): string | null {
@@ -47,7 +47,10 @@ class ApiClient {
   }
 
   async createTask(
-    task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'workspace_id' | 'creator_id'>
+    task: Omit<
+      Task,
+      'id' | 'created_at' | 'updated_at' | 'workspace_id' | 'creator_id'
+    >
   ): Promise<Task> {
     return this.request<Task>('/tasks', {
       method: 'POST',
@@ -66,6 +69,10 @@ class ApiClient {
     return this.request<void>(`/tasks/${id}`, {
       method: 'DELETE',
     })
+  }
+
+  async getDashboard(companyId: string): Promise<DashboardData> {
+    return this.request<DashboardData>(`/companies/${companyId}/dashboard`)
   }
 
   setAuthToken(token: string): void {

@@ -1,0 +1,87 @@
+openapi: 3.0.0
+info:
+  title: Omni Task Manager API
+  description: API for the world's best task manager foundation.
+  version: 1.0.0
+servers:
+  - url: /api
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Task:
+      type: object
+      required: [title, status, priority, workspace_id, creator_id]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string, maxLength: 255 }
+        description: { type: string }
+        status: { type: string, enum: [todo, in_progress, done] }
+        priority: { type: string, enum: [low, medium, high, critical] }
+        project_id: { type: string, format: uuid, nullable: true }
+        assignee_id: { type: string, format: uuid, nullable: true }
+        creator_id: { type: string, format: uuid }
+        workspace_id: { type: string, format: uuid }
+        due_date: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    Project:
+      type: object
+      required: [name, owner_id, workspace_id]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, maxLength: 255 }
+        description: { type: string }
+        owner_id: { type: string, format: uuid }
+        workspace_id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+security:
+  - bearerAuth: []
+paths:
+  /tasks:
+    get:
+      summary: List tasks
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [todo, in_progress, done] }
+        - name: priority
+          in: query
+          schema: { type: string, enum: [low, medium, high, critical] }
+        - name: project_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                { type: array, items: { $ref: '#/components/schemas/Task' } }
+    post:
+      summary: Create task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string }
+                description: { type: string }
+                status: { type: string }
+                priority: { type: string }
+                project_id: { type: string, format: uuid }
+                assignee_id: { type: string, format: uuid }
+                due_date: { type: string, format: date-time }
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }

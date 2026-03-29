@@ -1,0 +1,9 @@
+- fact: Delegated v1 roadmap and product requirements to Product Manager.
+  source: OMN-116
+  status: active
+- fact: Delegated v1 technical foundation and prototype to Founding Engineer.
+  source: OMN-117
+  status: active
+- fact: Created Strategic Delegation Plan CEO-DEL-001 in plans/.
+  source: local_file
+  status: active
