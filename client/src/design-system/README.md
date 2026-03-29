@@ -65,7 +65,6 @@ A flexbox layout primitive for consistent vertical and horizontal spacing.
 
 ```tsx
 import { Stack } from './design-system'
-
 ;<Stack spacing="lg">
   <Text>First block</Text>
   <Text>Second block</Text>
