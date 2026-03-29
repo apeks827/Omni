@@ -156,14 +156,12 @@ const TaskInput: React.FC<TaskInputProps> = ({
             aria-describedby="task-input-help"
           />
 
-          <Text
+          <span
             id="task-input-help"
-            variant="caption"
-            color="gray600"
-            style={{ marginTop: `-${spacing.sm}` }}
+            style={{ fontSize: '0.875rem', color: colors.gray600 }}
           >
             Type naturally. We'll extract title, deadline, and priority.
-          </Text>
+          </span>
 
           {isExtracting && (
             <Text variant="body" color="gray600">

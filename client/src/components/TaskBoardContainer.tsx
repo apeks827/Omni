@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import TaskBoard from './TaskBoard'
 import TaskForm from './TaskForm'
+import TaskInput from './TaskInput'
 import { apiClient } from '../services/api'
 import { Task } from '../types'
 import { Text, Button, Card, Stack } from '../design-system'
@@ -10,6 +11,7 @@ const TaskBoardContainer: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [useQuickInput, setUseQuickInput] = useState(true)
 
   useEffect(() => {
     void loadTasks()
@@ -42,6 +44,21 @@ const TaskBoardContainer: React.FC = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create task')
     }
+  }
+
+  const handleQuickCreate = async (taskData: {
+    title: string
+    priority: 'low' | 'medium' | 'high' | 'critical'
+    due_date?: Date
+  }) => {
+    const newTask = await apiClient.createTask({
+      title: taskData.title,
+      priority: taskData.priority,
+      status: 'todo',
+      due_date: taskData.due_date,
+    })
+    setTasks(currentTasks => [...currentTasks, newTask])
+    setError(null)
   }
 
   const handleToggleStatus = async (taskId: string) => {
@@ -119,12 +136,26 @@ const TaskBoardContainer: React.FC = () => {
               visibility.
             </Text>
           </div>
-          <Button
-            variant="primary"
-            onClick={() => setShowForm(currentValue => !currentValue)}
-          >
-            {showForm ? 'Close form' : 'New task'}
-          </Button>
+          <Stack direction="horizontal" spacing="sm">
+            <Button
+              variant={useQuickInput ? 'primary' : 'outline'}
+              onClick={() => {
+                setUseQuickInput(true)
+                setShowForm(false)
+              }}
+            >
+              Quick Input
+            </Button>
+            <Button
+              variant={!useQuickInput && showForm ? 'primary' : 'outline'}
+              onClick={() => {
+                setUseQuickInput(false)
+                setShowForm(currentValue => !currentValue)
+              }}
+            >
+              {showForm && !useQuickInput ? 'Close form' : 'Full form'}
+            </Button>
+          </Stack>
         </Stack>
 
         <Stack
@@ -167,7 +198,9 @@ const TaskBoardContainer: React.FC = () => {
           </Card>
         )}
 
-        {showForm && (
+        {useQuickInput && <TaskInput onSubmit={handleQuickCreate} />}
+
+        {showForm && !useQuickInput && (
           <div style={{ marginBottom: '20px' }}>
             <TaskForm
               onSubmit={handleCreateTask}

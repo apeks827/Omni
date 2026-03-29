@@ -143,6 +143,25 @@ router.post(
   }
 )
 
+router.post('/extract', async (req: AuthRequest, res: Response) => {
+  try {
+    const { input } = req.body
+
+    if (!input || typeof input !== 'string') {
+      return res.status(400).json({ error: 'Input is required' })
+    }
+
+    const extracted = extractTaskData(input)
+    res.json(extracted)
+  } catch (error: any) {
+    if (error.message.includes('empty') || error.message.includes('exceeds')) {
+      return res.status(400).json({ error: error.message })
+    }
+    console.error('Error extracting task data:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 router.post(
   '/',
   validate(createTaskSchema),
