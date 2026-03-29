@@ -6,6 +6,9 @@ import helmet from 'helmet'
 import authRouter from '../routes/auth.js'
 import tasksRouter from '../routes/tasks.js'
 import projectsRouter from '../routes/projects.js'
+import labelsRouter from '../routes/labels.js'
+import handoffRouter from '../routes/handoff.js'
+import aiRouter from '../routes/ai.js'
 
 const app = express()
 app.use(helmet())
@@ -14,6 +17,9 @@ app.use(express.json())
 app.use('/api/auth', authRouter)
 app.use('/api/tasks', tasksRouter)
 app.use('/api/projects', projectsRouter)
+app.use('/api/labels', labelsRouter)
+app.use('/api/handoff', handoffRouter)
+app.use('/api/ai', aiRouter)
 
 const request = supertest(app)
 
@@ -172,6 +178,240 @@ describe('Integration Tests', () => {
 
       console.log(`Average task query: ${avgPerQuery}ms`)
       expect(avgPerQuery).toBeLessThan(50)
+    })
+  })
+
+  describe('Labels API', () => {
+    let createdLabelId: string
+
+    it('should reject requests without token', async () => {
+      const response = await request.get('/api/labels')
+      expect(response.status).toBe(401)
+    })
+
+    it('should create a label', async () => {
+      const response = await request
+        .post('/api/labels')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          name: `Test Label ${Date.now()}`,
+          color: '#FF5733',
+        })
+
+      expect(response.status).toBe(201)
+      expect(response.body.id).toBeDefined()
+      expect(response.body.name).toBeDefined()
+      createdLabelId = response.body.id
+    })
+
+    it('should get all labels', async () => {
+      const response = await request
+        .get('/api/labels')
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(200)
+      expect(Array.isArray(response.body)).toBe(true)
+    })
+
+    it('should get a label by id', async () => {
+      const response = await request
+        .get(`/api/labels/${createdLabelId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(200)
+      expect(response.body.id).toBe(createdLabelId)
+    })
+
+    it('should return 404 for non-existent label', async () => {
+      const response = await request
+        .get('/api/labels/00000000-0000-0000-0000-000000000000')
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(404)
+    })
+
+    it('should update a label', async () => {
+      const response = await request
+        .put(`/api/labels/${createdLabelId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          name: `Updated Label ${Date.now()}`,
+          color: '#33FF57',
+        })
+
+      expect(response.status).toBe(200)
+      expect(response.body.color).toBe('#33FF57')
+    })
+
+    it('should delete a label', async () => {
+      const response = await request
+        .delete(`/api/labels/${createdLabelId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(204)
+    })
+
+    it('should return 404 after deleting label', async () => {
+      const response = await request
+        .get(`/api/labels/${createdLabelId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(404)
+    })
+  })
+
+  describe('Handoff API', () => {
+    let createdTemplateId: string
+    let testTaskId: string
+
+    beforeAll(async () => {
+      const taskResponse = await request
+        .post('/api/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          title: 'Handoff Test Task',
+          status: 'in_progress',
+          priority: 'high',
+        })
+      testTaskId = taskResponse.body.id
+    })
+
+    it('should reject requests without token', async () => {
+      const response = await request.get('/api/handoff/templates')
+      expect(response.status).toBe(401)
+    })
+
+    it('should create a handoff template', async () => {
+      const response = await request
+        .post('/api/handoff/templates')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          from_status: 'in_progress',
+          next_title: 'Review Task',
+          next_description: 'Please review this task',
+          assignee_role: 'qa',
+          auto_mention: true,
+        })
+
+      expect(response.status).toBe(201)
+      expect(response.body.id).toBeDefined()
+      expect(response.body.from_status).toBe('in_progress')
+      expect(response.body.next_title).toBe('Review Task')
+      createdTemplateId = response.body.id
+    })
+
+    it('should require from_status and next_title', async () => {
+      const response = await request
+        .post('/api/handoff/templates')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          from_status: 'in_progress',
+        })
+
+      expect(response.status).toBe(400)
+      expect(response.body.error).toContain('next_title')
+    })
+
+    it('should get all handoff templates', async () => {
+      const response = await request
+        .get('/api/handoff/templates')
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(200)
+      expect(Array.isArray(response.body)).toBe(true)
+    })
+
+    it('should get a template by id', async () => {
+      const response = await request
+        .get(`/api/handoff/templates/${createdTemplateId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(200)
+      expect(response.body.id).toBe(createdTemplateId)
+    })
+
+    it('should return 404 for non-existent template', async () => {
+      const response = await request
+        .get('/api/handoff/templates/00000000-0000-0000-0000-000000000000')
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(404)
+    })
+
+    it('should update a handoff template', async () => {
+      const response = await request
+        .put(`/api/handoff/templates/${createdTemplateId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          from_status: 'in_progress',
+          next_title: 'Updated Review Task',
+        })
+
+      expect(response.status).toBe(200)
+      expect(response.body.next_title).toBe('Updated Review Task')
+    })
+
+    it('should get handoffs for a task', async () => {
+      const response = await request
+        .get(`/api/handoff/task/${testTaskId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(200)
+      expect(response.body).toBeDefined()
+    })
+
+    it('should get all handoffs', async () => {
+      const response = await request
+        .get('/api/handoff/all')
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(200)
+      expect(Array.isArray(response.body)).toBe(true)
+    })
+
+    it('should delete a handoff template', async () => {
+      const response = await request
+        .delete(`/api/handoff/templates/${createdTemplateId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(204)
+    })
+
+    it('should return 404 after deleting template', async () => {
+      const response = await request
+        .get(`/api/handoff/templates/${createdTemplateId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(404)
+    })
+  })
+
+  describe('AI API', () => {
+    it('should reject requests without token', async () => {
+      const response = await request.post('/api/ai/analyze-task').send({
+        title: 'Test task',
+      })
+      expect(response.status).toBe(401)
+    })
+
+    it('should require task title for analyze-task', async () => {
+      const response = await request
+        .post('/api/ai/analyze-task')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({})
+
+      expect(response.status).toBe(400)
+      expect(response.body.error).toContain('title')
+    })
+
+    it('should require message for chat', async () => {
+      const response = await request
+        .post('/api/ai/chat')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({})
+
+      expect(response.status).toBe(400)
+      expect(response.body.error).toContain('Message')
     })
   })
 })
