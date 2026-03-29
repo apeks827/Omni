@@ -40,6 +40,7 @@ export default [
         HTMLButtonElement: 'readonly',
         HTMLInputElement: 'readonly',
         HTMLElement: 'readonly',
+        HTMLDivElement: 'readonly',
         EventTarget: 'readonly',
         KeyboardEvent: 'readonly',
         React: 'readonly',
@@ -68,6 +69,12 @@ export default [
     },
   },
   {
-    ignores: ['node_modules/', 'dist/', 'client/dist/', '*.config.ts'],
+    ignores: [
+      'node_modules/',
+      'dist/',
+      'client/dist/',
+      '*.config.ts',
+      'storybook-static/',
+    ],
   },
 ]

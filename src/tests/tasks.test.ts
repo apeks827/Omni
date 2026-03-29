@@ -214,6 +214,50 @@ describe('Tasks API Tests', () => {
     })
   })
 
+  describe('Schedule Task', () => {
+    it('should schedule a task and return time slot', async () => {
+      const createResponse = await request
+        .post('/api/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          title: 'Task to Schedule',
+          priority: 'high',
+          due_date: new Date(Date.now() + 86400000).toISOString(),
+        })
+
+      const taskId = createResponse.body.id
+
+      const response = await request
+        .post(`/api/tasks/${taskId}/schedule`)
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(200)
+      expect(response.body.task_id).toBe(taskId)
+      expect(response.body.suggested_slot).toBeDefined()
+      expect(response.body.suggested_slot.start_time).toBeDefined()
+      expect(response.body.suggested_slot.end_time).toBeDefined()
+      expect(response.body.suggested_slot.confidence).toBeGreaterThan(0)
+      expect(response.body.reasoning).toBeDefined()
+      expect(Array.isArray(response.body.alternative_slots)).toBe(true)
+    })
+
+    it('should return 404 for non-existent task', async () => {
+      const response = await request
+        .post('/api/tasks/00000000-0000-0000-0000-000000000000/schedule')
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(404)
+    })
+
+    it('should reject scheduling without authentication', async () => {
+      const response = await request.post(
+        '/api/tasks/00000000-0000-0000-0000-000000000000/schedule'
+      )
+
+      expect(response.status).toBe(401)
+    })
+  })
+
   describe('Delete Task', () => {
     it('should delete a task', async () => {
       const response = await request

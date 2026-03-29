@@ -1,6 +1,7 @@
 import React from 'react'
 import { Task } from '../types'
 import { Card, Text, Button, Badge, Stack } from '../design-system'
+import { formatRelativeDate, getDateColor, isOverdue } from '../utils/dateFormat'
 
 const formatDuration = (minutes: number): string => {
   if (minutes < 60) {
@@ -112,6 +113,15 @@ const TaskItem: React.FC<TaskItemProps> = ({
         {task.duration_minutes && (
           <Text variant="caption">
             Duration: {formatDuration(task.duration_minutes)}
+          </Text>
+        )}
+        {task.due_date && (
+          <Text 
+            variant="caption" 
+            weight={isOverdue(task.due_date) ? 'bold' : 'regular'}
+            style={{ color: getDateColor(task.due_date) }}
+          >
+            Due: {formatRelativeDate(task.due_date)}
           </Text>
         )}
       </Stack>

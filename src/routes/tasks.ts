@@ -10,9 +10,11 @@ import {
   quickTaskSchema,
 } from '../validation/schemas.js'
 import handoffService from '../services/handoff/handoff.service.js'
+import reviewService from '../services/review/review.service.js'
 import queueService from '../services/queue/queue.service.js'
 import { extractTaskData } from '../services/nlp/extractor.js'
 import { scheduleTask } from '../services/scheduling/scheduler.js'
+import { AppError, ErrorCodes, handleError } from '../utils/errors.js'
 
 const router = Router()
 
@@ -78,8 +80,8 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const result = await query(queryText, params)
     res.json(result.rows)
   } catch (error) {
-    console.error('Error fetching tasks:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    const { status, body } = handleError(error, 'Failed to fetch tasks')
+    res.status(status).json(body)
   }
 })
 
@@ -96,13 +98,20 @@ router.get(
       )
 
       if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Task not found' })
+        const error = new AppError(
+          ErrorCodes.TASK_NOT_FOUND,
+          'Task not found',
+          { task_id: id },
+          404
+        )
+        const { status, body } = handleError(error)
+        return res.status(status).json(body)
       }
 
       res.json(result.rows[0])
     } catch (error) {
-      console.error('Error fetching task:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      const { status, body } = handleError(error, 'Failed to fetch task')
+      res.status(status).json(body)
     }
   }
 )
@@ -137,10 +146,17 @@ router.post(
         error.message.includes('empty') ||
         error.message.includes('exceeds')
       ) {
-        return res.status(400).json({ error: error.message })
+        const err = new AppError(
+          ErrorCodes.VALIDATION_ERROR,
+          error.message,
+          {},
+          400
+        )
+        const { status, body } = handleError(err)
+        return res.status(status).json(body)
       }
-      console.error('Error creating quick task:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      const { status, body } = handleError(error, 'Failed to create task')
+      res.status(status).json(body)
     }
   }
 )
@@ -150,17 +166,31 @@ router.post('/extract', async (req: AuthRequest, res: Response) => {
     const { input } = req.body
 
     if (!input || typeof input !== 'string') {
-      return res.status(400).json({ error: 'Input is required' })
+      const err = new AppError(
+        ErrorCodes.VALIDATION_ERROR,
+        'Input is required',
+        {},
+        400
+      )
+      const { status, body } = handleError(err)
+      return res.status(status).json(body)
     }
 
     const extracted = extractTaskData(input)
     res.json(extracted)
   } catch (error: any) {
     if (error.message.includes('empty') || error.message.includes('exceeds')) {
-      return res.status(400).json({ error: error.message })
+      const err = new AppError(
+        ErrorCodes.VALIDATION_ERROR,
+        error.message,
+        {},
+        400
+      )
+      const { status, body } = handleError(err)
+      return res.status(status).json(body)
     }
-    console.error('Error extracting task data:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    const { status, body } = handleError(error, 'Failed to extract task data')
+    res.status(status).json(body)
   }
 })
 
@@ -231,8 +261,8 @@ router.post(
 
       res.status(201).json(result.rows[0])
     } catch (error) {
-      console.error('Error creating task:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      const { status, body } = handleError(error, 'Failed to create task')
+      res.status(status).json(body)
     }
   }
 )
@@ -301,7 +331,14 @@ router.put(
       )
 
       if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Task not found' })
+        const error = new AppError(
+          ErrorCodes.TASK_NOT_FOUND,
+          'Task not found',
+          { task_id: id },
+          404
+        )
+        const { status, body } = handleError(error)
+        return res.status(status).json(body)
       }
 
       const updatedTask = result.rows[0]
@@ -324,6 +361,11 @@ router.put(
             updatedTask,
             workspaceId as string
           )
+
+          await reviewService.triggerReviewForTask(
+            updatedTask,
+            workspaceId as string
+          )
         } catch (handoffError) {
           console.error('Error triggering handoffs:', handoffError)
         }
@@ -331,8 +373,8 @@ router.put(
 
       res.json(updatedTask)
     } catch (error) {
-      console.error('Error updating task:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      const { status, body } = handleError(error, 'Failed to update task')
+      res.status(status).json(body)
     }
   }
 )
@@ -347,7 +389,14 @@ router.post(
       const userId = req.userId as string
 
       if (!userId) {
-        return res.status(401).json({ error: 'Unauthorized' })
+        const error = new AppError(
+          ErrorCodes.UNAUTHORIZED,
+          'Unauthorized',
+          {},
+          401
+        )
+        const { status, body } = handleError(error)
+        return res.status(status).json(body)
       }
 
       const taskResult = await query(
@@ -356,11 +405,25 @@ router.post(
       )
 
       if (taskResult.rows.length === 0) {
-        return res.status(404).json({ error: 'Task not found' })
+        const error = new AppError(
+          ErrorCodes.TASK_NOT_FOUND,
+          'Task not found',
+          { task_id: id },
+          404
+        )
+        const { status, body } = handleError(error)
+        return res.status(status).json(body)
       }
 
       if (taskResult.rows[0].workspace_id !== workspaceId) {
-        return res.status(403).json({ error: 'Forbidden' })
+        const error = new AppError(
+          ErrorCodes.FORBIDDEN,
+          'Forbidden',
+          { task_id: id },
+          403
+        )
+        const { status, body } = handleError(error)
+        return res.status(status).json(body)
       }
 
       const scheduleResult = await scheduleTask({
@@ -381,12 +444,13 @@ router.post(
       )
 
       res.json(scheduleResult)
-    } catch (error: any) {
-      if (error.message === 'Task not found') {
-        return res.status(404).json({ error: 'Task not found' })
+    } catch (error) {
+      if (error instanceof AppError) {
+        const { status, body } = handleError(error)
+        return res.status(status).json(body)
       }
-      console.error('Error scheduling task:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      const { status, body } = handleError(error, 'Failed to schedule task')
+      res.status(status).json(body)
     }
   }
 )
@@ -404,13 +468,20 @@ router.delete(
       )
 
       if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Task not found' })
+        const error = new AppError(
+          ErrorCodes.TASK_NOT_FOUND,
+          'Task not found',
+          { task_id: id },
+          404
+        )
+        const { status, body } = handleError(error)
+        return res.status(status).json(body)
       }
 
       res.status(204).send()
     } catch (error) {
-      console.error('Error deleting task:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      const { status, body } = handleError(error, 'Failed to delete task')
+      res.status(status).json(body)
     }
   }
 )
