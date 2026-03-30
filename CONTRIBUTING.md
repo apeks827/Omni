@@ -68,7 +68,18 @@ Examples:
 
 ## Local Quality Gates
 
-Before pushing code, run these commands locally:
+### Automated Pre-commit Hooks
+
+Pre-commit hooks are configured to automatically run on every commit:
+
+- **Lint**: Runs `eslint --fix` on staged TypeScript files
+- **Format**: Runs `prettier --write` on staged files
+
+The commit will be blocked if linting fails. Most issues are auto-fixed.
+
+### Manual Quality Checks
+
+Before pushing code, these commands are recommended:
 
 ```bash
 # Type check
@@ -80,11 +91,8 @@ npm run build
 # Build server
 npm run server:build
 
-# Lint code
-npm run lint
-
-# Format code
-npm run format
+# Run tests
+npm test
 ```
 
 All commands must pass without errors.
