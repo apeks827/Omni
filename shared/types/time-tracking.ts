@@ -35,7 +35,7 @@ export interface TimeEntryFilters {
   end_date?: Date
   type?: TimeEntry['type']
   user_id?: string
-  workspace_id: string
+  workspace_id?: string
   limit?: number
   offset?: number
 }

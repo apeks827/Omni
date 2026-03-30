@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { spacing } from '../../design-system/tokens'
 import TimeTrackingTimer from './TimeTrackingTimer'
 import TimeLogList from './TimeLogList'
@@ -6,28 +6,8 @@ import ManualTimeEntryForm from './ManualTimeEntryForm'
 import TimeAnalytics from './TimeAnalytics'
 import TimeExport from './TimeExport'
 import timeTrackingApi from '../../services/timeTrackingApi'
-
-interface TimeEntry {
-  id: string
-  task_id: string
-  workspace_id: string
-  user_id: string
-  start_time: Date
-  end_time?: Date
-  duration_seconds: number
-  type: 'manual' | 'timer' | 'pomodoro'
-  description?: string
-}
-
-interface TimerState {
-  id: string
-  user_id: string
-  task_id: string
-  workspace_id: string
-  status: 'running' | 'paused' | 'stopped'
-  start_time: Date
-  elapsed_seconds: number
-}
+import Toast from '../Toast'
+import { TimeEntry, TimerState } from '../../../../shared/types/time-tracking'
 
 interface TimeTrackingContainerProps {
   taskId: string
@@ -45,6 +25,7 @@ const TimeTrackingContainer: React.FC<TimeTrackingContainerProps> = ({
   const [timerState, setTimerState] = useState<TimerState | null>(null)
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([])
   const [showManualEntry, setShowManualEntry] = useState(false)
+  const [toast, setToast] = useState<{ message: string } | null>(null)
 
   useEffect(() => {
     loadTimerState()
@@ -67,20 +48,19 @@ const TimeTrackingContainer: React.FC<TimeTrackingContainerProps> = ({
       if (timer && timer.task_id === taskId) {
         setTimerState(timer)
       }
-    } catch (error) {
-      console.error('Failed to load timer state:', error)
+    } catch {
+      setToast({ message: 'Failed to load timer state' })
     }
   }
 
   const loadTimeEntries = async () => {
     try {
       const { entries } = await timeTrackingApi.getTaskTimeEntries(taskId, {
-        workspace_id: workspaceId,
         limit: 100,
       })
       setTimeEntries(entries)
-    } catch (error) {
-      console.error('Failed to load time entries:', error)
+    } catch {
+      setToast({ message: 'Failed to load time entries' })
     }
   }
 
@@ -89,8 +69,8 @@ const TimeTrackingContainer: React.FC<TimeTrackingContainerProps> = ({
       const timer = await timeTrackingApi.startTimer(taskId)
       setTimerState(timer)
       localStorage.setItem(`timer_${userId}`, JSON.stringify(timer))
-    } catch (error) {
-      console.error('Failed to start timer:', error)
+    } catch {
+      setToast({ message: 'Failed to start timer' })
     }
   }
 
@@ -100,8 +80,8 @@ const TimeTrackingContainer: React.FC<TimeTrackingContainerProps> = ({
       const timer = await timeTrackingApi.pauseTimer(timerState.id)
       setTimerState(timer)
       localStorage.setItem(`timer_${userId}`, JSON.stringify(timer))
-    } catch (error) {
-      console.error('Failed to pause timer:', error)
+    } catch {
+      setToast({ message: 'Failed to pause timer' })
     }
   }
 
@@ -112,8 +92,8 @@ const TimeTrackingContainer: React.FC<TimeTrackingContainerProps> = ({
       setTimerState(null)
       localStorage.removeItem(`timer_${userId}`)
       setTimeEntries([timeEntry, ...timeEntries])
-    } catch (error) {
-      console.error('Failed to stop timer:', error)
+    } catch {
+      setToast({ message: 'Failed to stop timer' })
     }
   }
 
@@ -134,11 +114,13 @@ const TimeTrackingContainer: React.FC<TimeTrackingContainerProps> = ({
         source: 'client',
         duration_seconds: entry.duration * 60,
         start_time: startDate,
+        description: entry.description,
       })
       setTimeEntries([newEntry, ...timeEntries])
       setShowManualEntry(false)
-    } catch (error) {
-      console.error('Failed to create manual entry:', error)
+      setToast({ message: 'Time entry created' })
+    } catch {
+      setToast({ message: 'Failed to create time entry' })
     }
   }
 
@@ -151,27 +133,37 @@ const TimeTrackingContainer: React.FC<TimeTrackingContainerProps> = ({
     description?: string
     type: 'manual' | 'tracked'
   }) => {
-    console.log('Edit entry:', log)
+    try {
+      const updated = await timeTrackingApi.updateTimeEntry(log.id, {
+        duration_seconds: log.duration * 60,
+        description: log.description,
+      })
+      setTimeEntries(timeEntries.map(e => (e.id === log.id ? updated : e)))
+      setToast({ message: 'Time entry updated' })
+    } catch {
+      setToast({ message: 'Failed to update time entry' })
+    }
   }
 
   const handleDeleteEntry = async (logId: string) => {
     try {
       await timeTrackingApi.deleteTimeEntry(logId)
       setTimeEntries(timeEntries.filter(e => e.id !== logId))
-    } catch (error) {
-      console.error('Failed to delete entry:', error)
+      setToast({ message: 'Time entry deleted' })
+    } catch {
+      setToast({ message: 'Failed to delete time entry' })
     }
   }
 
-  const handleExport = async (format: 'csv' | 'json' | 'pdf') => {
+  const handleExport = async (
+    format: 'csv' | 'json',
+    dateRange: { start?: Date; end?: Date } = {}
+  ) => {
     try {
-      if (format === 'pdf') {
-        console.warn('PDF export not yet implemented')
-        return
-      }
       const blob = await timeTrackingApi.exportTimeData(format, {
         task_id: taskId,
-        workspace_id: workspaceId,
+        start_date: dateRange.start,
+        end_date: dateRange.end,
       })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -179,8 +171,9 @@ const TimeTrackingContainer: React.FC<TimeTrackingContainerProps> = ({
       a.download = `time-tracking-${taskId}.${format}`
       a.click()
       URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Failed to export:', error)
+      setToast({ message: `Exported as ${format.toUpperCase()}` })
+    } catch {
+      setToast({ message: 'Failed to export time data' })
     }
   }
 

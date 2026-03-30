@@ -3,9 +3,8 @@ import { authenticateToken, AuthRequest } from '../middleware/auth.js'
 import { validateParams } from '../middleware/validation.js'
 import { uuidParamSchema } from '../validation/schemas.js'
 import { energyLearningService } from '../services/ml/energy-learning.service.js'
-import { taskClassifier } from '../services/ml/task-classifier.service.js'
 import { handleError } from '../utils/errors.js'
-import { query } from '../config/database.js'
+import energyService from '../domains/energy/services/energy.service.js'
 
 const router = Router()
 
@@ -105,26 +104,15 @@ router.get(
   validateParams(uuidParamSchema),
   async (req: AuthRequest, res: Response) => {
     try {
-      const taskId = req.params.id
-      const workspaceId = req.workspaceId as string
+      const taskId = req.params.id as string
+      const workspaceId = req.workspaceId
 
-      const taskResult = await query(
-        'SELECT id, title, description, type, estimated_duration FROM tasks WHERE id = $1 AND workspace_id = $2',
-        [taskId, workspaceId]
-      )
-
-      if (taskResult.rows.length === 0) {
-        return res.status(404).json({ error: 'Task not found' })
+      if (!workspaceId) {
+        return res.status(401).json({ error: 'Unauthorized' })
       }
 
-      const task = taskResult.rows[0]
-      const classification = await taskClassifier.classifyTask(task as any)
-
-      res.json({
-        taskId,
-        cognitiveLoad: classification.load,
-        confidence: classification.confidence,
-      })
+      const result = await energyService.getCognitiveLoad(taskId, workspaceId)
+      res.json(result)
     } catch (error) {
       const { status, body } = handleError(error, 'Failed to classify task')
       res.status(status).json(body)

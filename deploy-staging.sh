@@ -62,8 +62,7 @@ sleep 5
 HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$STAGING_HOST:3000/health || echo "000")
 
 if [ "$HEALTH_STATUS" = "200" ]; then
-	echo "✓ Deployment successful!"
-	echo "✓ Application is healthy at http://$STAGING_HOST:3000"
+	echo "✓ Health check passed"
 else
 	echo "✗ Health check failed (HTTP $HEALTH_STATUS)"
 	echo "Check logs with: ssh $STAGING_USER@$STAGING_HOST 'cd $DEPLOY_DIR && docker-compose logs'"
@@ -71,11 +70,26 @@ else
 fi
 
 echo ""
+echo "Step 7: Observability check..."
+sleep 2
+METRICS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$STAGING_HOST:3000/metrics || echo "000")
+if [ "$METRICS_STATUS" = "200" ]; then
+	echo "✓ Prometheus metrics endpoint available"
+	curl -s http://$STAGING_HOST:3000/metrics | head -5
+else
+	echo "✗ Metrics endpoint check failed (HTTP $METRICS_STATUS)"
+fi
+
+echo ""
+echo "=== Deployment Complete ==="
+echo "Application: http://$STAGING_HOST:3000"
+echo "Metrics: http://$STAGING_HOST:3000/metrics"
+echo "Health: http://$STAGING_HOST:3000/health"
+
+echo ""
 echo "Cleaning up local artifacts..."
 rm omni-staging.tar.gz
 
 echo ""
-echo "=== Deployment Complete ==="
-echo "Access URL: http://$STAGING_HOST:3000"
 echo "View logs: ssh $STAGING_USER@$STAGING_HOST 'cd $DEPLOY_DIR && docker-compose logs -f'"
 echo "Rollback: ssh $STAGING_USER@$STAGING_HOST 'cd $DEPLOY_DIR && docker-compose down && docker-compose up -d'"

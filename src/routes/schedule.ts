@@ -1,8 +1,7 @@
 import { Router, Response } from 'express'
 import { authenticateToken, AuthRequest } from '../middleware/auth.js'
-import { scheduleTask } from '../services/scheduling/scheduler.js'
 import { handleError, AppError, ErrorCodes } from '../utils/errors.js'
-import { query } from '../config/database.js'
+import scheduleService from '../domains/schedule/services/schedule.service.js'
 
 const router = Router()
 
@@ -23,7 +22,7 @@ router.post('/generate', async (req: AuthRequest, res: Response) => {
       )
     }
 
-    const result = await scheduleTask({
+    const result = await scheduleService.scheduleTask({
       taskId: task_id,
       userId,
       workspaceId,
@@ -42,23 +41,7 @@ router.get('/explain/:taskId', async (req: AuthRequest, res: Response) => {
     const userId = req.userId as string
     const workspaceId = req.workspaceId as string
 
-    const taskResult = await query(
-      'SELECT id, title, priority, due_date, estimated_duration FROM tasks WHERE id = $1 AND workspace_id = $2',
-      [taskId, workspaceId]
-    )
-
-    if (taskResult.rows.length === 0) {
-      throw new AppError(
-        ErrorCodes.TASK_NOT_FOUND,
-        'Task not found',
-        { task_id: taskId },
-        404
-      )
-    }
-
-    const task = taskResult.rows[0]
-
-    const scheduleResult = await scheduleTask({
+    const scheduleResult = await scheduleService.scheduleTask({
       taskId,
       userId,
       workspaceId,
@@ -66,13 +49,11 @@ router.get('/explain/:taskId', async (req: AuthRequest, res: Response) => {
 
     const explanation = {
       task_id: taskId,
-      task_title: task.title,
+      task_title: scheduleResult.suggested_slot,
       suggested_slot: scheduleResult.suggested_slot,
       reasoning: scheduleResult.reasoning,
       factors: {
-        priority: task.priority,
-        due_date: task.due_date,
-        estimated_duration: task.estimated_duration,
+        priority: scheduleResult.suggested_slot.confidence,
         energy_alignment: scheduleResult.suggested_slot.energy_score,
         confidence: scheduleResult.suggested_slot.confidence,
       },

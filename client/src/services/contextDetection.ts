@@ -61,22 +61,31 @@ class ContextDetectionService {
   }
 
   private detectDevice(): DeviceContext {
-    const ua = navigator.userAgent
+    const ua = navigator.userAgent.toLowerCase()
     const width = window.innerWidth
     const height = window.innerHeight
 
     let type: 'desktop' | 'mobile' | 'tablet' = 'desktop'
-    if (width < 768) {
+
+    const isMobileUA =
+      /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
+    const isTabletUA = /ipad|tablet|playbook|silk/i.test(ua)
+
+    if (isMobileUA || (width < 768 && isMobileUA)) {
       type = 'mobile'
-    } else if (width < 1024) {
+    } else if (isTabletUA || (width < 1024 && width >= 768)) {
       type = 'tablet'
+    }
+
+    if (type === 'desktop' && width < 1024) {
+      type = width < 768 ? 'mobile' : 'tablet'
     }
 
     return {
       type,
       screenWidth: width,
       screenHeight: height,
-      userAgent: ua,
+      userAgent: navigator.userAgent,
     }
   }
 
@@ -167,13 +176,17 @@ class ContextDetectionService {
         }
         const position = await new Promise<GeolocationPosition>(
           (resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject)
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              timeout: 10000,
+              maximumAge: 0,
+            })
           }
         )
         this.permissions.location = true
         this.updateLocationContextFromRaw(position)
         return true
-      } catch {
+      } catch (error) {
+        console.error('Geolocation permission denied or error:', error)
         this.permissions.location = false
         return false
       }
@@ -196,7 +209,7 @@ class ContextDetectionService {
   watchLocation(callback: (loc: LocationContext) => void): number | null {
     if (!this.permissions.location) return null
 
-    this.locationWatchId = navigator.geolocation.watchPosition(
+    const watchId = navigator.geolocation.watchPosition(
       position => {
         const loc: LocationContext = {
           latitude: position.coords.latitude,
@@ -207,11 +220,14 @@ class ContextDetectionService {
         this.updateLocationContextFromRaw(position)
         callback(loc)
       },
-      () => {},
+      error => {
+        console.error('Geolocation watch error:', error)
+      },
       { enableHighAccuracy: false, maximumAge: 300000 }
     )
 
-    return this.locationWatchId
+    this.locationWatchId = watchId
+    return watchId
   }
 
   clearWatch(handle: number) {

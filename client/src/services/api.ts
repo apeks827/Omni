@@ -191,6 +191,110 @@ class ApiClient {
     )
   }
 
+  async getGoals(status?: string): Promise<any[]> {
+    const query = status ? `?status=${status}` : ''
+    return this.request<any[]>(`/goals${query}`)
+  }
+
+  async getGoal(id: string): Promise<any> {
+    return this.request<any>(`/goals/${id}`)
+  }
+
+  async createGoal(goal: {
+    title: string
+    description?: string
+    status?: string
+    timeframe_type?: string
+    start_date: string
+    end_date: string
+  }): Promise<any> {
+    return this.request<any>('/goals', {
+      method: 'POST',
+      body: JSON.stringify(goal),
+    })
+  }
+
+  async updateGoal(id: string, updates: Partial<any>): Promise<any> {
+    return this.request<any>(`/goals/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    })
+  }
+
+  async deleteGoal(id: string): Promise<void> {
+    return this.request<void>(`/goals/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async getKeyResults(goalId: string): Promise<any[]> {
+    return this.request<any[]>(`/goals/${goalId}/key-results`)
+  }
+
+  async createKeyResult(
+    goalId: string,
+    kr: {
+      title: string
+      target_value: number
+      current_value?: number
+      measurement_type?: string
+      unit?: string
+    }
+  ): Promise<any> {
+    return this.request<any>(`/goals/${goalId}/key-results`, {
+      method: 'POST',
+      body: JSON.stringify(kr),
+    })
+  }
+
+  async updateKeyResult(id: string, updates: Partial<any>): Promise<any> {
+    return this.request<any>(`/key-results/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    })
+  }
+
+  async updateKeyResultProgress(
+    id: string,
+    current_value: number
+  ): Promise<any> {
+    return this.request<any>(`/key-results/${id}/progress`, {
+      method: 'PATCH',
+      body: JSON.stringify({ current_value }),
+    })
+  }
+
+  async deleteKeyResult(id: string): Promise<void> {
+    return this.request<void>(`/key-results/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async linkTaskToGoal(
+    taskId: string,
+    goal_id: string,
+    key_result_id?: string
+  ): Promise<any> {
+    return this.request<any>(`/tasks/${taskId}/link-goal`, {
+      method: 'POST',
+      body: JSON.stringify({ goal_id, key_result_id }),
+    })
+  }
+
+  async unlinkTaskFromGoal(taskId: string, goal_id: string): Promise<void> {
+    return this.request<void>(`/tasks/${taskId}/link-goal?goal_id=${goal_id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async getTaskGoals(taskId: string): Promise<any[]> {
+    return this.request<any[]>(`/tasks/${taskId}/goals`)
+  }
+
+  async getGoalTasks(goalId: string): Promise<any[]> {
+    return this.request<any[]>(`/goals/${goalId}/tasks`)
+  }
+
   setAuthToken(token: string): void {
     localStorage.setItem('authToken', token)
   }

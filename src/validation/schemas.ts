@@ -188,3 +188,48 @@ export const importTasksSchema = z.object({
     })
     .optional(),
 })
+
+export const createGoalSchema = z.object({
+  title: z.string().min(1).max(255),
+  description: z.string().max(2000).optional(),
+  status: z
+    .enum(['draft', 'active', 'completed', 'archived', 'cancelled'])
+    .optional(),
+  timeframe_type: z.enum(['quarter', 'year', 'custom']).optional(),
+  start_date: z.string(),
+  end_date: z.string(),
+})
+
+export const updateGoalSchema = z.object({
+  title: z.string().min(1).max(255).optional(),
+  description: z.string().max(2000).optional().nullable(),
+  status: z
+    .enum(['draft', 'active', 'completed', 'archived', 'cancelled'])
+    .optional(),
+  timeframe_type: z.enum(['quarter', 'year', 'custom']).optional(),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+  progress_percentage: z.number().min(0).max(100).optional(),
+})
+
+export const createKeyResultSchema = z.object({
+  title: z.string().min(1).max(255),
+  target_value: z.number().min(0),
+  current_value: z.number().min(0).optional(),
+  measurement_type: z.enum(['numeric', 'percentage', 'boolean']).optional(),
+  unit: z.string().max(50).optional(),
+})
+
+export const updateKeyResultSchema = z.object({
+  title: z.string().min(1).max(255).optional(),
+  target_value: z.number().min(0).optional(),
+  current_value: z.number().min(0).optional(),
+  measurement_type: z.enum(['numeric', 'percentage', 'boolean']).optional(),
+  unit: z.string().max(50).optional().nullable(),
+  progress_percentage: z.number().min(0).max(100).optional(),
+})
+
+export const linkTaskToGoalSchema = z.object({
+  goal_id: z.string().uuid(),
+  key_result_id: z.string().uuid().optional(),
+})

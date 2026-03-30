@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 const ONBOARDING_KEY = 'omni_onboarding_completed'
 

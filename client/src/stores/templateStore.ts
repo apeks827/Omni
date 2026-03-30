@@ -21,7 +21,7 @@ interface TemplateState {
   closeModal: () => void
 }
 
-export const useTemplateStore = create<TemplateState>((set, get) => ({
+export const useTemplateStore = create<TemplateState>(set => ({
   templates: [],
   isLoading: false,
   error: null,

@@ -1,6 +1,7 @@
 import express from 'express'
 import { authenticateToken, AuthRequest } from '../middleware/auth.js'
-import { query } from '../config/database.js'
+import { handleError } from '../utils/errors.js'
+import errorService from '../domains/errors/services/error.service.js'
 
 const router = express.Router()
 
@@ -8,43 +9,19 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { layer, severity, resolved, limit = '50' } = req.query
 
-    let sql = `
-      SELECT 
-        id, correlation_id, layer, error_type, message, 
-        stack_trace, context, user_id, task_id, severity, 
-        resolved, created_at
-      FROM error_events
-      WHERE 1=1
-    `
-    const params: any[] = []
-    let paramCount = 0
-
-    if (layer) {
-      paramCount++
-      sql += ` AND layer = $${paramCount}`
-      params.push(layer)
+    const filters = {
+      layer: layer as string | undefined,
+      severity: severity as string | undefined,
+      resolved:
+        resolved === 'true' ? true : resolved === 'false' ? false : undefined,
+      limit: parseInt(limit as string),
     }
 
-    if (severity) {
-      paramCount++
-      sql += ` AND severity = $${paramCount}`
-      params.push(severity)
-    }
-
-    if (resolved !== undefined) {
-      paramCount++
-      sql += ` AND resolved = $${paramCount}`
-      params.push(resolved === 'true')
-    }
-
-    sql += ` ORDER BY created_at DESC LIMIT $${paramCount + 1}`
-    params.push(parseInt(limit as string))
-
-    const result = await query(sql, params)
-    res.json(result.rows)
+    const errors = await errorService.listErrors(filters)
+    res.json(errors)
   } catch (error) {
-    console.error('Error fetching error events:', error)
-    res.status(500).json({ error: 'Failed to fetch error events' })
+    const { status, body } = handleError(error, 'Failed to fetch error events')
+    res.status(status).json(body)
   }
 })
 
@@ -53,21 +30,15 @@ router.patch(
   authenticateToken,
   async (req: AuthRequest, res) => {
     try {
-      const { id } = req.params
-
-      const result = await query(
-        'UPDATE error_events SET resolved = TRUE WHERE id = $1 RETURNING *',
-        [id]
-      )
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Error event not found' })
-      }
-
-      res.json(result.rows[0])
+      const { id } = req.params as { id: string }
+      const resolved = await errorService.resolveError(id)
+      res.json(resolved)
     } catch (error) {
-      console.error('Error resolving error event:', error)
-      res.status(500).json({ error: 'Failed to resolve error event' })
+      const { status, body } = handleError(
+        error,
+        'Failed to resolve error event'
+      )
+      res.status(status).json(body)
     }
   }
 )
@@ -77,23 +48,15 @@ router.get(
   authenticateToken,
   async (req: AuthRequest, res) => {
     try {
-      const { correlationId } = req.params
-
-      const result = await query(
-        `SELECT 
-        id, correlation_id, layer, error_type, message, 
-        stack_trace, context, user_id, task_id, severity, 
-        resolved, created_at
-      FROM error_events
-      WHERE correlation_id = $1
-      ORDER BY created_at ASC`,
-        [correlationId]
-      )
-
-      res.json(result.rows)
+      const { correlationId } = req.params as { correlationId: string }
+      const errors = await errorService.getErrorsByCorrelationId(correlationId)
+      res.json(errors)
     } catch (error) {
-      console.error('Error fetching correlated errors:', error)
-      res.status(500).json({ error: 'Failed to fetch correlated errors' })
+      const { status, body } = handleError(
+        error,
+        'Failed to fetch correlated errors'
+      )
+      res.status(status).json(body)
     }
   }
 )

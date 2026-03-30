@@ -66,6 +66,44 @@ export interface Label {
   updatedAt: Date
 }
 
+export interface Goal {
+  id: string
+  title: string
+  description?: string
+  status: 'draft' | 'active' | 'completed' | 'archived' | 'cancelled'
+  timeframe_type: 'quarter' | 'year' | 'custom'
+  start_date: string
+  end_date: string
+  progress_percentage: number
+  created_at: Date
+  updated_at: Date
+  key_results?: KeyResult[]
+}
+
+export interface KeyResult {
+  id: string
+  goal_id: string
+  title: string
+  target_value: number
+  current_value: number
+  measurement_type: 'numeric' | 'percentage' | 'boolean'
+  unit?: string
+  progress_percentage: number
+  created_at: Date
+  updated_at: Date
+}
+
+export interface TaskGoalLink {
+  task_id: string
+  goal_id: string
+  key_result_id?: string
+  created_at: Date
+  goal_title?: string
+  goal_status?: string
+  key_result_title?: string
+  kr_progress?: number
+}
+
 export interface DashboardData {
   companyId: string
   agents: {

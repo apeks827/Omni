@@ -33,6 +33,9 @@ import taskActivityRouter from './domains/activity/routes/task-activity.js'
 import quotaRouter from './routes/quota.js'
 import energyRouter from './routes/energy.js'
 import intentsRouter from './routes/intents.js'
+import goalsRouter from './routes/goals.js'
+import keyResultsRouter from './routes/keyResults.js'
+import taskGoalLinksRouter from './routes/taskGoalLinks.js'
 import scheduleRouter from './routes/schedule.js'
 import { rateLimitMiddleware } from './middleware/rateLimitAdvanced.js'
 import correlationMiddleware from './middleware/correlation.js'
@@ -160,6 +163,10 @@ app.use('/api/analytics', analyticsRouter)
 app.use('/api', importExportRouter)
 app.use('/api/activity', activityRouter)
 app.use('/api/tasks', taskActivityRouter)
+app.use('/api/goals', goalsRouter)
+app.use('/api/goals/:goalId/key-results', keyResultsRouter)
+app.use('/api/key-results', keyResultsRouter)
+app.use('/api/tasks', taskGoalLinksRouter)
 app.use('/api/quota', quotaRouter)
 app.use('/api/users', energyRouter)
 

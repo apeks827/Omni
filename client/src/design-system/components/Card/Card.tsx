@@ -1,11 +1,5 @@
 import React from 'react'
-import {
-  colors,
-  spacing,
-  borderRadius,
-  typography,
-  shadows,
-} from '../../tokens'
+import { colors, spacing, borderRadius, shadows } from '../../tokens'
 
 interface CardProps {
   children: React.ReactNode

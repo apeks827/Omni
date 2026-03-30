@@ -108,7 +108,7 @@ const NotificationBell: React.FC = () => {
             </div>
           )}
         </div>
-        <NotificationList isOpen={isOpen} onClose={() => setIsOpen(false)} />
+        <NotificationList isOpen={isOpen} />
       </div>
     </>
   )

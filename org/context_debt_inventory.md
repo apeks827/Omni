@@ -61,16 +61,27 @@ This document tracks discovered knowledge gaps, outdated information, and missin
 - **Status**: Remediation tracked in [OMN-413](/OMN/issues/OMN-413)
 - **Owner**: @CEO, @Founding-Engineer
 
-### Layered Architecture Drift - Partial (Discovered 2026-03-30, Updated 2026-03-30)
+### Layered Architecture Drift - Ongoing (Discovered 2026-03-30, Updated 2026-03-30 09:41)
 
-- **Issue**: docs/layered-architecture.md specifies "zero SQL in routes" but 5 direct `pool.query` calls remain in routes
+- **Issue**: docs/layered-architecture.md specifies "zero SQL in routes" but direct database calls remain and new violations added
 - **Impact**: Architecture spec and implementation diverge; technical debt accumulating as new routes are added without service/repository pattern
-- **Status**: Partial remediation - [OMN-518](/OMN/issues/OMN-518) marked done but quota.ts has 5 remaining queries
+- **Status**: Partial remediation - [OMN-518](/OMN/issues/OMN-518) marked done but violations remain and new ones introduced. Full audit tracked in [OMN-608](/OMN/issues/OMN-608)
 - **Owner**: @Founding-Engineer
 - **Details**:
   - Partial migration completed: activities.ts, calendar.ts, comments.ts, and 10+ other routes cleaned
-  - Remaining: src/routes/quota.ts (lines 14, 81, 144, 169, 178)
-  - Need quota domain extraction (service + repository pattern)
+  - **Complete violation inventory (2026-03-30 audit):**
+    - src/routes/quota.ts: 5 pool.query calls
+    - src/routes/goals.ts: 6 query() calls (created 2026-03-30 12:27)
+    - src/routes/taskGoalLinks.ts: 8 query() calls
+    - src/routes/keyResults.ts: 13 query() calls
+    - src/routes/schedule.ts: 1 query() call
+    - src/routes/auth.ts: 12 query() calls
+    - src/routes/energy.ts: 1 query() call
+    - src/routes/errors.ts: 3 query() calls
+    - src/routes/projects.ts: 5 query() calls
+    - src/routes/labels.ts: 6 query() calls
+  - **Total:** 54 direct database calls across 11 route files
+  - Pattern: New routes being added without following layered architecture spec
 
 ### Onboarding Doc Discovery Gap (Discovered 2026-03-30)
 

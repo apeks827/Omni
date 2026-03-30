@@ -15,7 +15,10 @@ interface TimeExportProps {
     duration: number
     description?: string
   }[]
-  onExport: (format: 'csv' | 'json' | 'pdf') => void
+  onExport: (
+    format: 'csv' | 'json',
+    dateRange?: { start?: Date; end?: Date }
+  ) => void
 }
 
 const formatDuration = (minutes: number): string => {
@@ -33,9 +36,7 @@ const TimeExport: React.FC<TimeExportProps> = ({ logs, onExport }) => {
   )
   const [customStartDate, setCustomStartDate] = useState('')
   const [customEndDate, setCustomEndDate] = useState('')
-  const [exportFormat, setExportFormat] = useState<'csv' | 'json' | 'pdf'>(
-    'csv'
-  )
+  const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv')
 
   const getTotalDuration = (): number => {
     return logs.reduce((sum, log) => sum + log.duration, 0)
@@ -178,7 +179,7 @@ const TimeExport: React.FC<TimeExportProps> = ({ logs, onExport }) => {
                 gap: spacing.sm,
               }}
             >
-              {(['csv', 'json', 'pdf'] as const).map(format => (
+              {(['csv', 'json'] as const).map(format => (
                 <Button
                   key={format}
                   variant={exportFormat === format ? 'primary' : 'outline'}

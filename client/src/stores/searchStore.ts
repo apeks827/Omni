@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import {
   Task,
   SearchFilters,
-  SearchQuery,
   SearchResult,
   SavedSearch,
   SearchHistoryItem,
@@ -87,7 +86,8 @@ export const useSearchStore = create<SearchState>((set, get) => ({
         },
       })
     } else {
-      const { [key]: _, ...rest } = filters
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { [key]: _removed, ...rest } = filters
       set({ filters: rest })
     }
   },
