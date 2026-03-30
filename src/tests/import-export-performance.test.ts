@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import supertest from 'supertest'
 import express from 'express'
 import cors from 'cors'
@@ -7,6 +7,7 @@ import authRouter from '../routes/auth.js'
 import importExportRouter from '../routes/import-export.js'
 import tasksRouter from '../routes/tasks.js'
 import { pool } from '../config/database.js'
+import { clearRateLimitStore } from '../middleware/rateLimit.js'
 
 const app = express()
 app.use(helmet())
@@ -21,6 +22,10 @@ const request = supertest(app)
 describe('Import/Export Performance Tests', () => {
   let authToken: string
   let workspaceId: string
+
+  beforeEach(() => {
+    clearRateLimitStore()
+  })
 
   beforeAll(async () => {
     const response = await request.post('/api/auth/register').send({

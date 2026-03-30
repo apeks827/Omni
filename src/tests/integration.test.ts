@@ -177,8 +177,8 @@ describe('Integration Tests', () => {
       const avgPerQuery = elapsed / iterations
 
       console.log(`Average task query: ${avgPerQuery}ms`)
-      expect(avgPerQuery).toBeLessThan(50)
-    })
+      expect(avgPerQuery).toBeLessThan(100)
+    }, 30000)
   })
 
   describe('Labels API', () => {

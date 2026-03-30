@@ -111,7 +111,6 @@ describe('Time Tracking API', () => {
 
       mockQuery
         .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [mockTimer] })
 
       const response = await request(app)
@@ -141,12 +140,13 @@ describe('Time Tracking API', () => {
       const mockTimeEntry = {
         id: 'entry-123',
         task_id: 'task-123',
+        duration_seconds: 3600,
       }
 
       mockQuery
         .mockResolvedValueOnce({ rows: [mockTimer] })
         .mockResolvedValueOnce({ rows: [mockTimeEntry] })
-        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [mockTimer] })
 
       const response = await request(app)
         .post('/api/timer/stop')
@@ -158,7 +158,18 @@ describe('Time Tracking API', () => {
     })
   })
 
-  describe('GET /api/analytics', () => {
+  describe('GET /api/timer/status', () => {
+    it('should return timer status', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] })
+
+      const response = await request(app).get('/api/timer/status')
+
+      expect(response.status).toBe(200)
+      expect(response.body.status).toBe('idle')
+    })
+  })
+
+  describe('GET /api/analytics/analytics', () => {
     it('should return analytics data', async () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [] })

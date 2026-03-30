@@ -1,8 +1,12 @@
 import { query } from '../../config/database.js'
+import { schedulingOptimizer } from '../ml/scheduling-optimizer.service.js'
+import { taskClassifier, CognitiveLoad } from '../ml/task-classifier.service.js'
 
 interface Task {
   id: string
   title: string
+  description?: string
+  type: string
   priority: 'low' | 'medium' | 'high' | 'critical'
   due_date?: Date
   estimated_duration?: number
@@ -18,6 +22,7 @@ interface TimeSlot {
   start_time: Date
   end_time: Date
   confidence: number
+  energy_score?: number
 }
 
 interface ScheduleResponse {
@@ -44,7 +49,7 @@ export async function scheduleTask(
   const { taskId, userId, workspaceId } = request
 
   const taskResult = await query(
-    'SELECT id, title, priority, due_date, estimated_duration FROM tasks WHERE id = $1 AND workspace_id = $2',
+    'SELECT id, title, description, type, priority, due_date, estimated_duration FROM tasks WHERE id = $1 AND workspace_id = $2',
     [taskId, workspaceId]
   )
 
@@ -53,6 +58,19 @@ export async function scheduleTask(
   }
 
   const task: Task = taskResult.rows[0]
+
+  const taskForClassification = {
+    ...task,
+    status: 'pending' as const,
+    creator_id: userId,
+    workspace_id: workspaceId,
+    created_at: new Date(),
+    updated_at: new Date(),
+  }
+
+  const classification = await taskClassifier.classifyTask(
+    taskForClassification as any
+  )
 
   const userResult = await query(
     'SELECT timezone, preferences FROM users WHERE id = $1 AND workspace_id = $2',
@@ -77,23 +95,32 @@ export async function scheduleTask(
   const priorityScore = PRIORITY_WEIGHTS[task.priority]
   const durationMinutes = task.estimated_duration || DEFAULT_DURATION_MINUTES
 
-  const suggestedSlot = findOptimalSlot(
+  const suggestedSlot = await findOptimalSlot(
     task,
     occupiedSlots,
     workStartHour,
     workEndHour,
     durationMinutes,
-    priorityScore
+    priorityScore,
+    userId,
+    classification.load
   )
 
-  const reasoning = buildReasoning(task, priorityScore, suggestedSlot)
+  const reasoning = buildReasoning(
+    task,
+    priorityScore,
+    suggestedSlot,
+    classification
+  )
 
-  const alternativeSlots = findAlternativeSlots(
+  const alternativeSlots = await findAlternativeSlots(
     occupiedSlots,
     workStartHour,
     workEndHour,
     durationMinutes,
-    suggestedSlot
+    suggestedSlot,
+    userId,
+    classification.load
   )
 
   return {
@@ -104,14 +131,16 @@ export async function scheduleTask(
   }
 }
 
-function findOptimalSlot(
+async function findOptimalSlot(
   task: Task,
   occupiedSlots: Array<{ start: Date; end: Date }>,
   workStartHour: number,
   workEndHour: number,
   durationMinutes: number,
-  priorityScore: number
-): TimeSlot {
+  priorityScore: number,
+  userId: string,
+  cognitiveLoad: CognitiveLoad
+): Promise<TimeSlot> {
   const now = new Date()
   let searchDate = new Date(now)
 
@@ -121,6 +150,9 @@ function findOptimalSlot(
       searchDate = now
     }
   }
+
+  let bestSlot: TimeSlot | null = null
+  let bestScore = -1
 
   for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
     const candidateDate = new Date(searchDate)
@@ -143,18 +175,42 @@ function findOptimalSlot(
       durationMinutes
     )
 
-    if (freeSlots.length > 0) {
-      const slot = freeSlots[0]
-      return {
-        start_time: slot.start,
-        end_time: slot.end,
-        confidence: calculateConfidence(
-          priorityScore,
-          dayOffset,
-          task.due_date
-        ),
+    for (const slot of freeSlots) {
+      const hour = slot.start.getHours()
+      const energyScore = await schedulingOptimizer.calculateSlotScore(
+        userId,
+        hour,
+        cognitiveLoad
+      )
+
+      const priorityComponent = priorityScore * 0.4
+      const timeComponent = ((14 - dayOffset) / 14) * 0.3
+      const energyComponent = energyScore * 0.3
+
+      const combinedScore = priorityComponent + timeComponent + energyComponent
+
+      if (combinedScore > bestScore) {
+        bestScore = combinedScore
+        bestSlot = {
+          start_time: slot.start,
+          end_time: slot.end,
+          confidence: calculateConfidence(
+            priorityScore,
+            dayOffset,
+            task.due_date
+          ),
+          energy_score: energyScore,
+        }
       }
     }
+
+    if (bestSlot && dayOffset === 0) {
+      break
+    }
+  }
+
+  if (bestSlot) {
+    return bestSlot
   }
 
   const fallbackStart = new Date(now)
@@ -240,11 +296,18 @@ function calculateConfidence(
 function buildReasoning(
   task: Task,
   priorityScore: number,
-  slot: TimeSlot
+  slot: TimeSlot,
+  classification: { load: CognitiveLoad; confidence: number }
 ): string {
   const reasons: string[] = []
 
   reasons.push(`Priority: ${task.priority} (score: ${priorityScore})`)
+
+  reasons.push(`Cognitive load: ${classification.load}`)
+
+  if (slot.energy_score !== undefined) {
+    reasons.push(`Energy alignment: ${(slot.energy_score * 100).toFixed(0)}%`)
+  }
 
   if (task.due_date) {
     reasons.push(`Due date: ${task.due_date.toISOString().split('T')[0]}`)
@@ -259,13 +322,15 @@ function buildReasoning(
   return reasons.join(' | ')
 }
 
-function findAlternativeSlots(
+async function findAlternativeSlots(
   occupiedSlots: Array<{ start: Date; end: Date }>,
   workStartHour: number,
   workEndHour: number,
   durationMinutes: number,
-  primarySlot: TimeSlot
-): TimeSlot[] {
+  primarySlot: TimeSlot,
+  userId: string,
+  cognitiveLoad: CognitiveLoad
+): Promise<TimeSlot[]> {
   const alternatives: TimeSlot[] = []
   const now = new Date()
 
@@ -295,10 +360,18 @@ function findAlternativeSlots(
         slot.start.getTime() !== primarySlot.start_time.getTime() &&
         alternatives.length < 3
       ) {
+        const hour = slot.start.getHours()
+        const energyScore = await schedulingOptimizer.calculateSlotScore(
+          userId,
+          hour,
+          cognitiveLoad
+        )
+
         alternatives.push({
           start_time: slot.start,
           end_time: slot.end,
           confidence: 0.6,
+          energy_score: energyScore,
         })
       }
     }

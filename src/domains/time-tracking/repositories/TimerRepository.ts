@@ -24,13 +24,19 @@ class TimerRepository {
   }
 
   async create(data: CreateTimerStateData): Promise<TimerState> {
-    await this.stopAllTimers(data.user_id, data.workspace_id)
-
     const result = await pool.query(
       `INSERT INTO timer_states (
         user_id, task_id, workspace_id, status, start_time, 
         elapsed_seconds, pomodoro_type, pomodoro_work_count
       ) VALUES ($1, $2, $3, 'running', NOW(), 0, $4, 0)
+      ON CONFLICT (user_id, workspace_id) 
+      DO UPDATE SET 
+        status = 'running',
+        task_id = EXCLUDED.task_id,
+        start_time = NOW(),
+        elapsed_seconds = 0,
+        pomodoro_type = EXCLUDED.pomodoro_type,
+        updated_at = NOW()
       RETURNING *`,
       [
         data.user_id,

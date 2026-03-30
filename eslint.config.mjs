@@ -53,6 +53,8 @@ export default [
         crypto: 'readonly',
         confirm: 'readonly',
         performance: 'readonly',
+        Event: 'readonly',
+        SpeechRecognition: 'readonly',
         React: 'readonly',
       },
     },

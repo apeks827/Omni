@@ -28,6 +28,9 @@ import analyticsRouter from './domains/time-tracking/routes/analytics.js'
 import importExportRouter from './routes/import-export.js'
 import activityRouter from './domains/activity/routes/activity.js'
 import taskActivityRouter from './domains/activity/routes/task-activity.js'
+import quotaRouter from './routes/quota.js'
+import energyRouter from './routes/energy.js'
+import { rateLimitMiddleware } from './middleware/rateLimitAdvanced.js'
 
 const __dirname = path.resolve()
 
@@ -91,6 +94,15 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }))
 app.disable('x-powered-by')
 app.set('trust proxy', 1)
 
+app.use(
+  '/api',
+  rateLimitMiddleware({
+    windowMs: 60 * 1000,
+    max: 100,
+    message: 'API rate limit exceeded. Please try again later.',
+  })
+)
+
 app.get('/health', async (req, res) => {
   try {
     await pool.query('SELECT 1')
@@ -126,6 +138,8 @@ app.use('/api/analytics', analyticsRouter)
 app.use('/api', importExportRouter)
 app.use('/api/activity', activityRouter)
 app.use('/api/tasks', taskActivityRouter)
+app.use('/api/quota', quotaRouter)
+app.use('/api/users', energyRouter)
 
 const clientDistPath = path.join(__dirname, '..', 'client', 'dist')
 app.use(express.static(clientDistPath))

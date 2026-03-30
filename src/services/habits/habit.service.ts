@@ -60,7 +60,8 @@ export class HabitService {
       [id, userId]
     )
     if (result.rows.length === 0) {
-      throw new Error('Habit not found')
+      const { AppError, ErrorCodes } = await import('../../utils/errors.js')
+      throw new AppError(ErrorCodes.NOT_FOUND, 'Habit not found', {}, 404)
     }
     return result.rows[0]
   }
@@ -133,7 +134,8 @@ export class HabitService {
     )
 
     if (result.rows.length === 0) {
-      throw new Error('Habit not found')
+      const { AppError, ErrorCodes } = await import('../../utils/errors.js')
+      throw new AppError(ErrorCodes.NOT_FOUND, 'Habit not found', {}, 404)
     }
 
     return result.rows[0]
@@ -145,7 +147,8 @@ export class HabitService {
       [id, userId]
     )
     if (result.rows.length === 0) {
-      throw new Error('Habit not found')
+      const { AppError, ErrorCodes } = await import('../../utils/errors.js')
+      throw new AppError(ErrorCodes.NOT_FOUND, 'Habit not found', {}, 404)
     }
   }
 

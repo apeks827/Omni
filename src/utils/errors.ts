@@ -34,6 +34,7 @@ export const ErrorCodes = {
   INVALID_CREDENTIALS: 'invalid_credentials',
   TOKEN_EXPIRED: 'token_expired',
   VALIDATION_ERROR: 'validation_error',
+  CONFLICT: 'conflict',
 } as const
 
 export function handleError(

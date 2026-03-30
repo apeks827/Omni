@@ -10,6 +10,12 @@ interface RateLimitStore {
 
 const store: RateLimitStore = {}
 
+export const clearRateLimitStore = (): void => {
+  for (const key in store) {
+    delete store[key]
+  }
+}
+
 export const rateLimit = (options: {
   windowMs: number
   max: number

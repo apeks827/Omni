@@ -54,7 +54,8 @@ export class RoutineService {
       [id, userId]
     )
     if (result.rows.length === 0) {
-      throw new Error('Routine not found')
+      const { AppError, ErrorCodes } = await import('../../utils/errors.js')
+      throw new AppError(ErrorCodes.NOT_FOUND, 'Routine not found', {}, 404)
     }
     return result.rows[0]
   }
@@ -107,7 +108,8 @@ export class RoutineService {
     )
 
     if (result.rows.length === 0) {
-      throw new Error('Routine not found')
+      const { AppError, ErrorCodes } = await import('../../utils/errors.js')
+      throw new AppError(ErrorCodes.NOT_FOUND, 'Routine not found', {}, 404)
     }
 
     return result.rows[0]
@@ -119,7 +121,8 @@ export class RoutineService {
       [id, userId]
     )
     if (result.rows.length === 0) {
-      throw new Error('Routine not found')
+      const { AppError, ErrorCodes } = await import('../../utils/errors.js')
+      throw new AppError(ErrorCodes.NOT_FOUND, 'Routine not found', {}, 404)
     }
   }
 
@@ -174,7 +177,8 @@ export class RoutineService {
         [stepId, routineId]
       )
       if (stepResult.rows.length === 0) {
-        throw new Error('Step not found')
+        const { AppError, ErrorCodes } = await import('../../utils/errors.js')
+        throw new AppError(ErrorCodes.NOT_FOUND, 'Step not found', {}, 404)
       }
       return stepResult.rows[0]
     }
@@ -189,7 +193,8 @@ export class RoutineService {
     )
 
     if (result.rows.length === 0) {
-      throw new Error('Step not found')
+      const { AppError, ErrorCodes } = await import('../../utils/errors.js')
+      throw new AppError(ErrorCodes.NOT_FOUND, 'Step not found', {}, 404)
     }
 
     return result.rows[0]
@@ -204,7 +209,8 @@ export class RoutineService {
     )
 
     if (result.rows.length === 0) {
-      throw new Error('Step not found')
+      const { AppError, ErrorCodes } = await import('../../utils/errors.js')
+      throw new AppError(ErrorCodes.NOT_FOUND, 'Step not found', {}, 404)
     }
 
     await this.updateRoutineTotalSteps(routineId)
@@ -258,7 +264,8 @@ export class RoutineService {
       [stepId, routineId]
     )
     if (stepResult.rows.length === 0) {
-      throw new Error('Step not found')
+      const { AppError, ErrorCodes } = await import('../../utils/errors.js')
+      throw new AppError(ErrorCodes.NOT_FOUND, 'Step not found', {}, 404)
     }
 
     const date = scheduledDate || new Date().toISOString().split('T')[0]
@@ -356,7 +363,7 @@ export class RoutineService {
       total_scheduled: parseInt(stats.total_scheduled),
       total_completed: parseInt(stats.total_completed),
       avg_completion_rate: stats.avg_completion_rate
-        ? parseFloat(stats.avg_completion_rate.toFixed(2))
+        ? parseFloat(parseFloat(stats.avg_completion_rate).toFixed(2))
         : 0,
     }
   }
