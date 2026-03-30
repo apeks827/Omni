@@ -35,6 +35,13 @@ const passwordResetRateLimit = rateLimit({
   message: 'Too many password reset attempts, please try again later.',
 })
 
+// Rate limiter for token refresh
+const tokenRefreshRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // 10 refreshes per minute
+  message: 'Too many token refresh attempts, please try again later.',
+})
+
 const router = Router()
 
 // Register endpoint
@@ -60,7 +67,7 @@ router.post('/register', authRateLimit, async (req, res) => {
     }
 
     // Hash password
-    const saltRounds = 10
+    const saltRounds = 12
     const hashedPassword = await bcrypt.hash(password, saltRounds)
 
     // Generate a new workspace ID for the user
@@ -242,6 +249,56 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 })
 
+// Token refresh endpoint
+router.post('/refresh', tokenRefreshRateLimit, async (req, res) => {
+  try {
+    const authReq = req as AuthRequest
+    const userId = authReq.userId
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    // Get IP and user agent for security logging
+    const ip = req.ip || req.header('x-forwarded-for') || 'unknown'
+    const userAgent = req.header('user-agent') || 'unknown'
+
+    // Verify user still exists
+    const result = await query(
+      'SELECT id, email, workspace_id FROM users WHERE id = $1',
+      [userId]
+    )
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'User not found' })
+    }
+
+    const user = result.rows[0]
+
+    // Generate new JWT token with extended expiration
+    const token = jwt.sign(
+      { userId: user.id, workspaceId: user.workspace_id },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '30d' }
+    )
+
+    // Update last activity
+    await query('UPDATE users SET last_activity_at = NOW() WHERE id = $1', [
+      userId,
+    ])
+
+    // Log token refresh
+    await logAuditEvent('token_refreshed', userId, ip, userAgent, {
+      email: user.email,
+    })
+
+    res.json({ token })
+  } catch (error) {
+    console.error('Token refresh error:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 // Password reset request endpoint
 router.post('/forgot-password', passwordResetRateLimit, async (req, res) => {
   try {
@@ -349,7 +406,7 @@ router.post('/reset-password', authRateLimit, async (req, res) => {
     )
 
     // Look for a matching token
-    let matchingTokenRecord = null
+    let matchingTokenRecord: any = null
     for (const record of tokenResult.rows) {
       const isValid = await verifyToken(token, record.token_hash)
       if (isValid) {
@@ -370,7 +427,7 @@ router.post('/reset-password', authRateLimit, async (req, res) => {
     }
 
     // Hash the new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10)
+    const hashedPassword = await bcrypt.hash(newPassword, 12)
 
     // Update the user's password
     await query(

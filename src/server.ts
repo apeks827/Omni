@@ -11,11 +11,13 @@ import authRouter from './routes/auth.js'
 import tasksRouter from './routes/tasks.js'
 import aiRouter from './routes/ai.js'
 import metricsRouter from './routes/metrics.js'
+import prometheusRouter from './routes/prometheus.js'
 import handoffRouter from './routes/handoff.js'
 import queueRouter from './routes/queue.js'
 import notificationsRouter from './routes/notifications.js'
 import calendarRouter from './routes/calendar.js'
 import notificationScheduler from './services/notifications/notification.scheduler.js'
+import patternUpdateJob from './services/ml/jobs/pattern-update.job.js'
 import commentsRouter from './routes/comments.js'
 import searchRouter from './routes/search.js'
 import habitsRouter from './routes/habits.js'
@@ -30,19 +32,34 @@ import activityRouter from './domains/activity/routes/activity.js'
 import taskActivityRouter from './domains/activity/routes/task-activity.js'
 import quotaRouter from './routes/quota.js'
 import energyRouter from './routes/energy.js'
+import intentsRouter from './routes/intents.js'
+import scheduleRouter from './routes/schedule.js'
 import { rateLimitMiddleware } from './middleware/rateLimitAdvanced.js'
+import correlationMiddleware from './middleware/correlation.js'
+import { logger } from './utils/logger.js'
 
 const __dirname = path.resolve()
 
 dotenv.config()
 
 if (!process.env.JWT_SECRET) {
-  console.error('FATAL: JWT_SECRET is not set in environment')
+  logger.fatal('JWT_SECRET is not set in environment')
+  process.exit(1)
+}
+
+if (
+  process.env.JWT_SECRET === 'your_jwt_secret_key_here' ||
+  process.env.JWT_SECRET.length < 32
+) {
+  logger.fatal(
+    'JWT_SECRET is using the default value or is too short. ' +
+      'Generate a secure secret with: openssl rand -hex 32'
+  )
   process.exit(1)
 }
 
 if (!process.env.DB_PASSWORD) {
-  console.error('FATAL: DB_PASSWORD is not set in environment')
+  logger.fatal('DB_PASSWORD is not set in environment')
   process.exit(1)
 }
 
@@ -94,6 +111,8 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }))
 app.disable('x-powered-by')
 app.set('trust proxy', 1)
 
+app.use(correlationMiddleware)
+
 app.use(
   '/api',
   rateLimitMiddleware({
@@ -108,7 +127,7 @@ app.get('/health', async (req, res) => {
     await pool.query('SELECT 1')
     res.json({ status: 'ok', timestamp: new Date().toISOString() })
   } catch (error) {
-    console.error('Health check failed:', error)
+    logger.error({ error }, 'Health check failed')
     res.status(503).json({
       status: 'error',
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -119,13 +138,16 @@ app.get('/health', async (req, res) => {
 app.use('/api/auth', authRouter)
 app.use('/api/projects', projectsRouter)
 app.use('/api/labels', labelsRouter)
+app.use('/api/intents', intentsRouter)
 app.use('/api/tasks', tasksRouter)
 app.use('/api/metrics', metricsRouter)
+app.use('/metrics', prometheusRouter)
 app.use('/api/ai', aiRouter)
 app.use('/api/handoff', handoffRouter)
 app.use('/api/queue', queueRouter)
 app.use('/api/notifications', notificationsRouter)
 app.use('/api/calendar', calendarRouter)
+app.use('/api/schedule', scheduleRouter)
 app.use('/api/tasks', commentsRouter)
 app.use('/api/search', searchRouter)
 app.use('/api/habits', habitsRouter)
@@ -150,20 +172,21 @@ app.get('*', (req, res) => {
 
 const startServer = async () => {
   try {
-    console.log('Running database migrations...')
+    logger.info('Running database migrations...')
     await runMigrations()
-    console.log('Database migrations completed')
+    logger.info('Database migrations completed')
 
     await pool.query('SELECT NOW()')
-    console.log('Database connected successfully')
+    logger.info('Database connected successfully')
 
     notificationScheduler.start()
+    patternUpdateJob.start()
 
     app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`)
+      logger.info({ port: PORT }, `Server running on port ${PORT}`)
     })
   } catch (error) {
-    console.error('Failed to start server:', error)
+    logger.fatal({ error }, 'Failed to start server')
     process.exit(1)
   }
 }

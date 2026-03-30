@@ -23,7 +23,7 @@ The product direction is a "Personal COO": the user provides intent, and Omni ha
 
 ## Target Architecture
 
-The canonical target architecture is documented in [architecture.md](./architecture.md). It covers the planned scheduling engine, context services, explainability layer, and future infrastructure such as Redis and vector search.
+The canonical target architecture is documented in [architecture.md](./architecture.md). It covers the planned scheduling engine, context services, explainability layer, and future infrastructure such as vector search.
 
 ## Getting Started
 

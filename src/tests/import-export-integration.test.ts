@@ -366,7 +366,7 @@ CSV Import Task 2,low,done`
         .get('/api/tasks')
         .set('Authorization', `Bearer ${authToken}`)
 
-      const reimportedTasks = verifyResponse.body.filter((t: any) =>
+      const reimportedTasks = verifyResponse.body.data.filter((t: any) =>
         t.title.startsWith('Reimported')
       )
       expect(reimportedTasks.length).toBe(originalCount)

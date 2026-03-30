@@ -1,3 +1,5 @@
+import { logger } from './logger.js'
+
 export class AppError extends Error {
   constructor(
     public code: string,
@@ -48,7 +50,7 @@ export function handleError(
     }
   }
 
-  console.error('Unhandled error:', error)
+  logger.error({ error }, 'Unhandled error')
 
   return {
     status: 500,

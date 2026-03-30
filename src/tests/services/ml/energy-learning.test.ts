@@ -193,7 +193,7 @@ describe('EnergyLearningService', () => {
       vi.mocked(query).mockResolvedValue(
         mockQueryResult([
           {
-            pattern_data: JSON.stringify(patternData),
+            pattern_data: patternData,
             confidence_score: '0.85',
             data_points: '50',
           },

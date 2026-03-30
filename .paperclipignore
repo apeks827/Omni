@@ -1,0 +1,36 @@
+# Exclude build artifacts and dependencies from agent context
+node_modules/
+dist/
+storybook-static/
+.next/
+.nuxt/
+.cache/
+coverage/
+*.log
+*.lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Exclude large binary/media files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.woff
+*.woff2
+*.ttf
+*.eot
+*.mp4
+*.webm
+*.pdf
+
+# Exclude git and IDE files
+.git/
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store

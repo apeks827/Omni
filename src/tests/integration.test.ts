@@ -318,9 +318,10 @@ describe('Integration Tests', () => {
         .set('Authorization', `Bearer ${authToken}`)
 
       expect(response.status).toBe(200)
-      expect(Array.isArray(response.body)).toBe(true)
-      expect(response.body.length).toBeGreaterThanOrEqual(2)
-      response.body.forEach((task: any) => {
+      expect(response.body).toHaveProperty('data')
+      expect(Array.isArray(response.body.data)).toBe(true)
+      expect(response.body.data.length).toBeGreaterThanOrEqual(2)
+      response.body.data.forEach((task: any) => {
         const hasLabel = task.labels?.some((l: any) => l.id === labelId)
         expect(hasLabel).toBe(true)
       })

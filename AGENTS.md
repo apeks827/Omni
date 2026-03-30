@@ -1,3 +1,11 @@
+## Organizational Knowledge
+
+Key docs are in the `org/` directory:
+
+- [org/context_debt_inventory.md](/OMN/org/context_debt_inventory.md) — Tracks knowledge gaps, outdated info, and missing docs slowing execution. Check here before creating work to avoid duplicate effort.
+- [org/proactive_triggers.md](/OMN/org/proactive_triggers.md) — Self-initiation cadences and trigger conditions for meta-roles. Review this to understand when to act without being asked.
+- [org/file_handling_protocols.md](/OMN/org/file_handling_protocols.md) — Mandatory read-before-overwrite procedures.
+
 ## Environment Setup
 
 1. Create three distinct environments:

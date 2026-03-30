@@ -1,10 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react'
-import { Task } from '../types'
+import { Task, TaskStatus, EnergyPattern } from '../types'
 import { Text, Button, Card, Stack } from '../design-system'
 import { apiClient } from '../services/api'
-import ScheduleExplanationTooltip from './ScheduleExplanationTooltip'
 import LowEnergyModeButton from './LowEnergyModeButton'
-import { formatRelativeDate, getDateColor } from '../utils/dateFormat'
 
 type ViewMode = 'day' | 'week' | 'month'
 
@@ -20,6 +18,69 @@ interface RescheduleConflict {
   affectedTasks: Task[]
 }
 
+const STATUS_COLORS = {
+  pending: { bg: '#f5f5f5', border: '#9e9e9e', text: '#666666' },
+  in_progress: { bg: '#e3f2fd', border: '#1976d2', text: '#0d47a1' },
+  completed: { bg: '#e8f5e9', border: '#4caf50', text: '#2e7d32' },
+  done: { bg: '#e8f5e9', border: '#4caf50', text: '#2e7d32' },
+  missed: { bg: '#ffebee', border: '#d32f2f', text: '#c62828' },
+  todo: { bg: '#f5f5f5', border: '#9e9e9e', text: '#666666' },
+}
+
+const ENERGY_COLORS = {
+  peak: { bg: '#fff8e1', border: '#ffc107', label: 'Peak Energy' },
+  low: { bg: '#e8eaf6', border: '#7986cb', label: 'Low Energy' },
+  neutral: { bg: '#ffffff', border: '#e0e0e0', label: '' },
+}
+
+const DEFAULT_ENERGY_PATTERN: EnergyPattern = {
+  peak_hours: [9, 10, 11, 14, 15],
+  low_hours: [13, 16, 17],
+}
+
+function getTaskComputedStatus(task: Task): TaskStatus {
+  const status = task.status as string
+  if (status === 'done' || status === 'completed') {
+    return 'completed'
+  }
+  if (status === 'in_progress') {
+    return 'in_progress'
+  }
+  if (task.due_date) {
+    const now = new Date()
+    const dueDate = new Date(task.due_date)
+    const isOverdue = dueDate < now
+    const isNotCompleted = status !== 'done' && status !== 'completed'
+    if (isOverdue && isNotCompleted) {
+      return 'missed'
+    }
+  }
+  return 'pending'
+}
+
+function getStatusColors(task: Task) {
+  const computedStatus = getTaskComputedStatus(task)
+  return STATUS_COLORS[computedStatus] || STATUS_COLORS.pending
+}
+
+function isPeakHour(hour: number, energyPattern: EnergyPattern): boolean {
+  return energyPattern.peak_hours.includes(hour)
+}
+
+function isLowHour(hour: number, energyPattern: EnergyPattern): boolean {
+  return energyPattern.low_hours.includes(hour)
+}
+
+function getEnergyColors(hour: number, energyPattern: EnergyPattern) {
+  if (isPeakHour(hour, energyPattern)) {
+    return ENERGY_COLORS.peak
+  }
+  if (isLowHour(hour, energyPattern)) {
+    return ENERGY_COLORS.low
+  }
+  return ENERGY_COLORS.neutral
+}
+
 const CalendarView: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<ViewMode>('week')
@@ -29,19 +90,24 @@ const CalendarView: React.FC = () => {
   const [conflicts, setConflicts] = useState<RescheduleConflict[]>([])
   const [showConflictModal, setShowConflictModal] = useState(false)
   const [lowEnergyMode, setLowEnergyMode] = useState(false)
-  const [selectedTaskForTooltip, setSelectedTaskForTooltip] = useState<
-    string | null
-  >(null)
+  const [energyPattern] = useState<EnergyPattern>(DEFAULT_ENERGY_PATTERN)
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false)
+  const [taskToReschedule, setTaskToReschedule] = useState<Task | null>(null)
   const draggedTaskRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     void loadTasks()
-  }, [])
+  }, [lowEnergyMode])
 
   const loadTasks = async () => {
     try {
-      const fetchedTasks = await apiClient.getTasks()
-      setTasks(fetchedTasks)
+      const result = await apiClient.getTasks()
+      const fetchedTasks = result.tasks || result
+      const processedTasks = fetchedTasks.map((task: Task) => ({
+        ...task,
+        due_date: task.due_date ? new Date(task.due_date) : undefined,
+      }))
+      setTasks(processedTasks)
     } catch (err) {
       console.error('Failed to load tasks:', err)
     } finally {
@@ -141,11 +207,11 @@ const CalendarView: React.FC = () => {
 
   const performReschedule = async (task: Task, newDate: Date) => {
     try {
-      const updatedTask = await apiClient.updateTask(task.id, {
+      await apiClient.updateTask(task.id, {
         due_date: newDate,
       })
       setTasks(prevTasks =>
-        prevTasks.map(t => (t.id === task.id ? updatedTask : t))
+        prevTasks.map(t => (t.id === task.id ? { ...t, due_date: newDate } : t))
       )
     } catch (err) {
       console.error('Failed to reschedule task:', err)
@@ -188,48 +254,28 @@ const CalendarView: React.FC = () => {
     }
   }
 
-  const handleAcceptSchedule = async (taskId: string) => {
-    try {
-      await fetch(`/api/tasks/${taskId}/schedule`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'accept' }),
-      })
-      await loadTasks()
-    } catch (err) {
-      console.error('Failed to accept schedule:', err)
-    }
+  const handleRescheduleMissed = (task: Task) => {
+    setTaskToReschedule(task)
+    setShowRescheduleModal(true)
   }
 
-  const handleRejectSchedule = async (taskId: string) => {
-    try {
-      await fetch(`/api/tasks/${taskId}/schedule`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'resuggest' }),
-      })
-      await loadTasks()
-    } catch (err) {
-      console.error('Failed to resuggest schedule:', err)
-    }
-  }
-
-  const handleManualSchedule = async (taskId: string, time: string) => {
-    try {
-      await fetch(`/api/tasks/${taskId}/schedule`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ suggestedTime: time }),
-      })
-      await loadTasks()
-    } catch (err) {
-      console.error('Failed to set manual schedule:', err)
-    }
+  const handleConfirmReschedule = async () => {
+    if (!taskToReschedule) return
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(9, 0, 0, 0)
+    await performReschedule(taskToReschedule, tomorrow)
+    setShowRescheduleModal(false)
+    setTaskToReschedule(null)
   }
 
   const handleLowEnergyToggle = async (enabled: boolean) => {
     setLowEnergyMode(enabled)
-    await loadTasks()
+    try {
+      await apiClient.toggleLowEnergyMode(enabled)
+    } catch (err) {
+      console.error('Failed to sync low energy mode:', err)
+    }
   }
 
   const goToToday = () => {
@@ -315,12 +361,18 @@ const CalendarView: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [viewMode])
 
-  const scheduledTasks = useMemo(() => {
-    return tasks.filter(task => task.due_date)
-  }, [tasks])
+  const filteredTasks = useMemo(() => {
+    let result = tasks.filter(task => task.due_date)
+    if (lowEnergyMode) {
+      result = result.filter(
+        task => task.priority === 'critical' || task.priority === 'high'
+      )
+    }
+    return result
+  }, [tasks, lowEnergyMode])
 
   const getTasksForDate = (date: Date) => {
-    return scheduledTasks.filter(task => {
+    return filteredTasks.filter(task => {
       if (!task.due_date) return false
       const taskDate = new Date(task.due_date)
       return (
@@ -339,21 +391,42 @@ const CalendarView: React.FC = () => {
     return currentDate.toLocaleDateString('en-US', options)
   }
 
-  const getPriorityColor = (priority: Task['priority']) => {
-    switch (priority) {
-      case 'critical':
-        return '#d32f2f'
-      case 'high':
-        return '#f57c00'
-      case 'medium':
-        return '#fbc02d'
-      default:
-        return '#9e9e9e'
+  const renderStatusBadge = (task: Task) => {
+    const status = getTaskComputedStatus(task)
+    const statusColors = getStatusColors(task)
+
+    const statusLabels: Record<TaskStatus, string> = {
+      pending: 'Pending',
+      in_progress: 'In Progress',
+      completed: 'Completed',
+      done: 'Completed',
+      missed: 'Missed',
+      todo: 'Todo',
     }
+
+    return (
+      <span
+        style={{
+          display: 'inline-block',
+          padding: '2px 6px',
+          borderRadius: '4px',
+          fontSize: '10px',
+          fontWeight: 600,
+          backgroundColor: statusColors.bg,
+          color: statusColors.text,
+          border: `1px solid ${statusColors.border}`,
+        }}
+      >
+        {statusLabels[status]}
+      </span>
+    )
   }
 
   const renderTaskCard = (task: Task, compact = false) => {
     const isDragging = dragState?.taskId === task.id
+    const statusColors = getStatusColors(task)
+    const isMissed = getTaskComputedStatus(task) === 'missed'
+
     return (
       <div
         draggable={!!task.due_date}
@@ -361,16 +434,19 @@ const CalendarView: React.FC = () => {
         onDragEnd={handleDragEnd}
         style={{
           cursor: task.due_date ? 'grab' : 'default',
-          backgroundColor: task.status === 'done' ? '#e8f5e9' : '#fff3e0',
-          borderLeft: `4px solid ${getPriorityColor(task.priority)}`,
+          backgroundColor: statusColors.bg,
+          borderLeft: `4px solid ${statusColors.border}`,
           padding: compact ? '2px 4px' : '8px',
           borderRadius: '4px',
-          border: '1px solid #e0e0e0',
+          border: isMissed ? `1px solid ${statusColors.border}` : 'none',
           marginBottom: '4px',
           opacity: isDragging ? 0.5 : 1,
-          transition: 'opacity 0.2s',
+          transition: 'opacity 0.2s, background-color 0.2s',
         }}
       >
+        {!compact && (
+          <div style={{ marginBottom: '4px' }}>{renderStatusBadge(task)}</div>
+        )}
         <Text
           variant={compact ? 'caption' : 'body'}
           style={{ fontSize: compact ? 10 : 14 }}
@@ -382,14 +458,40 @@ const CalendarView: React.FC = () => {
             {task.duration_minutes} min
           </Text>
         )}
-        {!compact && task.due_date && (
-          <ScheduleExplanationTooltip
-            taskId={task.id}
-            onAccept={() => handleAcceptSchedule(task.id)}
-            onReject={() => handleRejectSchedule(task.id)}
-            onManualEdit={time => handleManualSchedule(task.id, time)}
-          />
+        {isMissed && !compact && (
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => handleRescheduleMissed(task)}
+            style={{ marginTop: '8px' }}
+          >
+            Reschedule
+          </Button>
         )}
+      </div>
+    )
+  }
+
+  const renderEnergyIndicator = (hour: number) => {
+    const energyColors = getEnergyColors(hour, energyPattern)
+    if (!energyColors.bg || energyColors.bg === '#ffffff') return null
+
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          padding: '2px 4px',
+          fontSize: '9px',
+          backgroundColor: energyColors.bg,
+          borderLeft: `2px solid ${energyColors.border}`,
+          borderBottom: `2px solid ${energyColors.border}`,
+          borderBottomLeftRadius: '4px',
+          color: '#666',
+        }}
+      >
+        {energyColors.label}
       </div>
     )
   }
@@ -463,6 +565,111 @@ const CalendarView: React.FC = () => {
     )
   }
 
+  const renderRescheduleModal = () => {
+    if (!showRescheduleModal || !taskToReschedule) return null
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}
+        onClick={() => setShowRescheduleModal(false)}
+      >
+        <div
+          style={{
+            backgroundColor: 'white',
+            padding: '24px',
+            borderRadius: '8px',
+            maxWidth: '400px',
+            width: '90%',
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          <Text variant="h3" style={{ marginBottom: '8px' }}>
+            Reschedule Missed Task
+          </Text>
+          <Text variant="body" style={{ marginBottom: '16px', color: '#666' }}>
+            "{taskToReschedule.title}" was missed. Would you like to reschedule
+            it for tomorrow at 9:00 AM?
+          </Text>
+          <Stack direction="horizontal" spacing="md" justify="end">
+            <Button
+              variant="ghost"
+              onClick={() => setShowRescheduleModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleConfirmReschedule}>
+              Reschedule for Tomorrow
+            </Button>
+          </Stack>
+        </div>
+      </div>
+    )
+  }
+
+  const renderLegend = () => (
+    <Stack
+      direction="horizontal"
+      spacing="md"
+      justify="center"
+      style={{ marginTop: '16px' }}
+    >
+      <Stack direction="horizontal" spacing="xs" align="center">
+        <div
+          style={{
+            width: 12,
+            height: 12,
+            backgroundColor: STATUS_COLORS.pending.bg,
+            borderLeft: `3px solid ${STATUS_COLORS.pending.border}`,
+          }}
+        />
+        <Text variant="caption">Pending</Text>
+      </Stack>
+      <Stack direction="horizontal" spacing="xs" align="center">
+        <div
+          style={{
+            width: 12,
+            height: 12,
+            backgroundColor: STATUS_COLORS.in_progress.bg,
+            borderLeft: `3px solid ${STATUS_COLORS.in_progress.border}`,
+          }}
+        />
+        <Text variant="caption">In Progress</Text>
+      </Stack>
+      <Stack direction="horizontal" spacing="xs" align="center">
+        <div
+          style={{
+            width: 12,
+            height: 12,
+            backgroundColor: STATUS_COLORS.completed.bg,
+            borderLeft: `3px solid ${STATUS_COLORS.completed.border}`,
+          }}
+        />
+        <Text variant="caption">Completed</Text>
+      </Stack>
+      <Stack direction="horizontal" spacing="xs" align="center">
+        <div
+          style={{
+            width: 12,
+            height: 12,
+            backgroundColor: STATUS_COLORS.missed.bg,
+            borderLeft: `3px solid ${STATUS_COLORS.missed.border}`,
+          }}
+        />
+        <Text variant="caption">Missed</Text>
+      </Stack>
+    </Stack>
+  )
+
   const renderDayView = () => {
     const hours = Array.from({ length: 24 }, (_, i) => i)
     const dayTasks = getTasksForDate(currentDate)
@@ -475,6 +682,7 @@ const CalendarView: React.FC = () => {
             const taskDate = new Date(task.due_date)
             return taskDate.getHours() === hour
           })
+          const energyColors = getEnergyColors(hour, energyPattern)
 
           return (
             <div
@@ -483,10 +691,13 @@ const CalendarView: React.FC = () => {
                 display: 'flex',
                 borderBottom: '1px solid #e0e0e0',
                 minHeight: '60px',
+                backgroundColor: energyColors.bg,
+                position: 'relative',
               }}
               onDragOver={e => handleDragOver(currentDate, e)}
               onDrop={e => handleDrop(currentDate, e)}
             >
+              {renderEnergyIndicator(hour)}
               <div
                 style={{
                   width: '80px',
@@ -505,6 +716,10 @@ const CalendarView: React.FC = () => {
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '4px',
+                  borderLeft:
+                    energyColors.border !== '#e0e0e0'
+                      ? `2px solid ${energyColors.border}`
+                      : 'none',
                 }}
               >
                 {hourTasks.length > 0 ? (
@@ -747,11 +962,28 @@ const CalendarView: React.FC = () => {
         </Stack>
       </Stack>
 
+      {lowEnergyMode && (
+        <Card
+          padding="sm"
+          style={{
+            backgroundColor: '#fff8e1',
+            borderLeft: '4px solid #ffc107',
+          }}
+        >
+          <Text variant="body">
+            Low Energy Mode is active. Showing only critical and high priority
+            tasks.
+          </Text>
+        </Card>
+      )}
+
       <Card padding="lg">
         {viewMode === 'day' && renderDayView()}
         {viewMode === 'week' && renderWeekView()}
         {viewMode === 'month' && renderMonthView()}
       </Card>
+
+      {viewMode === 'day' && renderLegend()}
 
       <Stack direction="horizontal" spacing="md" justify="center">
         <Text variant="caption" style={{ color: '#666' }}>
@@ -760,6 +992,7 @@ const CalendarView: React.FC = () => {
         </Text>
       </Stack>
       {renderConflictModal()}
+      {renderRescheduleModal()}
     </Stack>
   )
 }

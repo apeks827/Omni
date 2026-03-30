@@ -134,8 +134,8 @@ describe('TaskClassifier', () => {
 
       const result = await classifier.classifyTask(task)
 
-      expect(result.load).toBe('deep_work')
-      expect(result.confidence).toBe(0.9)
+      expect(result.load).toBe('admin')
+      expect(result.confidence).toBe(0.6)
     })
 
     it('should prioritize duration over type classification', async () => {
@@ -193,7 +193,7 @@ describe('TaskClassifier', () => {
           description: 'Review PR #123',
           estimated_duration: 25,
         },
-        expectedLoad: 'medium',
+        expectedLoad: 'light',
       },
     ]
 

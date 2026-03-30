@@ -45,8 +45,8 @@ This document proposes the technical architecture for Omni, a personal operating
 ┌─────────────────────────────────────────────────────────────┐
 │                       Data Layer                             │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │  PostgreSQL  │  │    Redis     │  │  Vector DB   │      │
-│  │  (Primary)   │  │   (Cache)    │  │  (Embeddings)│      │
+│  │  PostgreSQL  │  │    Cache     │  │  Vector DB   │      │
+│  │  (Primary)   │  │   (Future)   │  │  (Embeddings)│      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -235,15 +235,17 @@ decision_log (
 )
 ```
 
-### Cache Layer (Redis)
+### Cache Layer (Future Enhancement)
 
-**Use Cases**:
+**Planned Use Cases**:
 
 - Session storage
 - Real-time schedule state
 - Rate limiting counters
 - Temporary context data
 - WebSocket connection management
+
+**Note**: Caching infrastructure not yet implemented. Current implementation uses in-memory session management.
 
 ### Vector Database (Pinecone/Weaviate)
 
@@ -356,7 +358,7 @@ Server → Client:
 
 - Horizontal scaling for API servers
 - Database read replicas for query performance
-- Redis cluster for distributed caching
+- Caching layer (future enhancement)
 - CDN for static assets
 - Message queue (RabbitMQ/Kafka) for async processing
 
@@ -370,7 +372,7 @@ Server → Client:
 | Intent Processing | OpenAI GPT-4          | State-of-art NLP capabilities                 |
 | Scheduling        | Custom Algorithm + ML | Domain-specific optimization                  |
 | Database          | PostgreSQL            | Robust, ACID-compliant, JSON support          |
-| Cache             | Redis                 | Fast, versatile, pub/sub support              |
+| Cache             | In-memory (future)    | Planned for distributed caching               |
 | Vector DB         | Pinecone              | Managed, scalable, easy integration           |
 | Message Queue     | RabbitMQ              | Reliable, flexible routing                    |
 | Monitoring        | Prometheus + Grafana  | Industry standard, powerful                   |
@@ -384,7 +386,7 @@ Server → Client:
 
 - Basic CRUD API for tasks and projects
 - Simple authentication
-- PostgreSQL + Redis
+- PostgreSQL database
 
 ### Phase 2 (Proposed Enhancements)
 

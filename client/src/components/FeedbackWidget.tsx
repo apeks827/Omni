@@ -1,8 +1,6 @@
 import React, { useState } from 'react'
-import { apiClient } from '../services/api'
 import { FeedbackApiClient, FeedbackSubmission } from '../services/feedbackApi'
 import Button from '../design-system/components/Button'
-import Input from '../design-system/components/Input'
 import Modal from '../design-system/components/Modal'
 import { colors } from '../design-system/tokens'
 

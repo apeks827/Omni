@@ -56,6 +56,7 @@ export default [
         Event: 'readonly',
         SpeechRecognition: 'readonly',
         React: 'readonly',
+        IntersectionObserver: 'readonly',
       },
     },
     plugins: {

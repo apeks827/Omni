@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Task } from '../types'
 import TaskItem from './TaskItem'
 import { Badge, Card, Stack, Text, colors } from '../design-system'
@@ -7,12 +7,22 @@ interface TaskBoardProps {
   tasks: Task[]
   onToggleStatus: (taskId: string) => void
   onDelete: (taskId: string) => void
+  selectedTaskIds: Set<string>
+  onToggleSelect: (taskId: string) => void
+  onRangeSelect: (taskId: string) => void
+  onSelectAll: (taskIds: string[]) => void
+  onClearSelection: () => void
 }
 
 const TaskBoard: React.FC<TaskBoardProps> = ({
   tasks,
   onToggleStatus,
   onDelete,
+  selectedTaskIds,
+  onToggleSelect,
+  onRangeSelect,
+  onSelectAll,
+  onClearSelection,
 }) => {
   const columns: Array<{
     status: Task['status']
@@ -39,6 +49,23 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
       badgeVariant: 'success',
     },
   ]
+
+  const allTaskIds = tasks.map(t => t.id)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClearSelection()
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+        e.preventDefault()
+        onSelectAll(allTaskIds)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [allTaskIds, onSelectAll, onClearSelection])
 
   const getTasksByStatus = (status: Task['status']) => {
     return tasks.filter(task => task.status === status)
@@ -98,6 +125,9 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
                       task={task}
                       onToggleStatus={onToggleStatus}
                       onDelete={onDelete}
+                      isSelected={selectedTaskIds.has(task.id)}
+                      onToggleSelect={onToggleSelect}
+                      onRangeSelect={onRangeSelect}
                     />
                   ))
                 )}

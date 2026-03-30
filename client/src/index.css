@@ -1,3 +1,23 @@
+:root {
+  --bg-main: #ffffff;
+  --bg-subtle: #f8f9fa;
+  --bg-inverse: #343a40;
+  --border-subtle: #dee2e6;
+  --border-default: #ced4da;
+  --text-primary: #212529;
+  --text-secondary: #6c757d;
+}
+
+.dark {
+  --bg-main: #1e222d;
+  --bg-subtle: #282d3a;
+  --bg-inverse: #f8fafc;
+  --border-subtle: #353b4a;
+  --border-default: #4a5268;
+  --text-primary: #f8fafc;
+  --text-secondary: #9ca3af;
+}
+
 body {
   margin: 0;
   font-family:
@@ -5,6 +25,9 @@ body {
     'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 *:focus-visible {
@@ -12,12 +35,246 @@ body {
   outline-offset: 2px;
 }
 
+.dark *:focus-visible {
+  outline-color: #4d9fff;
+}
+
 button:focus-visible {
   outline: 2px solid #007bff;
   outline-offset: 2px;
 }
 
+.dark button:focus-visible {
+  outline-color: #4d9fff;
+}
+
 input:focus-visible {
   outline: 2px solid #007bff;
   outline-offset: 0;
+}
+
+.dark input:focus-visible {
+  outline-color: #4d9fff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .app {
+    padding-bottom: 80px;
+  }
+}
+
+.swipe-container {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.swipe-actions {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.swipe-actions.left {
+  left: 0;
+}
+
+.swipe-actions.right {
+  right: 0;
+}
+
+.swipe-container.swiping .swipe-actions {
+  opacity: 1;
+}
+
+.swipe-action {
+  width: 80px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.swipe-action.complete {
+  background-color: #28a745;
+}
+
+.swipe-action.delete {
+  background-color: #dc3545;
+}
+
+.swipe-content {
+  background: var(--bg-main);
+  transition: transform 0.2s ease;
+}
+
+.swipe-container.swiping-left .swipe-content {
+  transform: translateX(80px);
+}
+
+.swipe-container.swiping-right .swipe-content {
+  transform: translateX(-80px);
+}
+
+@media (max-width: 768px) {
+  .mobile-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-main);
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0;
+    z-index: 1000;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 16px;
+    min-width: 64px;
+    min-height: 44px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: color 0.2s ease;
+  }
+
+  .mobile-nav-item.active {
+    color: #007bff;
+  }
+
+  .mobile-nav-item svg {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 4px;
+  }
+
+  .desktop-nav {
+    display: none !important;
+  }
+
+  .header-content {
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px !important;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .view-toggle {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .view-toggle::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-nav {
+    display: none !important;
+  }
+
+  .desktop-nav {
+    display: flex !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .task-card {
+    padding: 12px !important;
+    margin: 8px 0 !important;
+  }
+
+  .task-title {
+    font-size: 0.9375rem !important;
+  }
+
+  .task-description {
+    font-size: 0.8125rem !important;
+  }
+}
+
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .touch-target {
+    min-width: 48px;
+    min-height: 48px;
+  }
+
+  button,
+  .clickable {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+}
+
+.pwa-install-banner {
+  position: fixed;
+  bottom: 80px;
+  left: 16px;
+  right: 16px;
+  background: var(--bg-inverse);
+  color: var(--bg-main);
+  padding: 16px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  z-index: 1001;
+}
+
+.pwa-install-banner button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.pwa-install-banner .dismiss {
+  background: transparent;
+  color: var(--text-secondary);
 }

@@ -130,6 +130,84 @@ src/
 - User validation and lookup
 - Workspace membership checks
 
+### Phase 2.5: Dependency Injection Container
+
+Implement a simple DI container for managing service instantiation:
+
+```typescript
+// src/di/container.ts
+import { Pool } from 'pg'
+import { TaskRepository } from '../domains/tasks/repositories/task.repository.js'
+import { ProjectRepository } from '../domains/projects/repositories/project.repository.js'
+import { UserRepository } from '../domains/users/repositories/user.repository.js'
+import { TaskService } from '../domains/tasks/services/task.service.js'
+import { ProjectService } from '../domains/projects/services/project.service.js'
+import { UserService } from '../domains/users/services/user.service.js'
+
+interface Container {
+  pool: Pool
+  taskRepository: TaskRepository
+  projectRepository: ProjectRepository
+  userRepository: UserRepository
+  taskService: TaskService
+  projectService: ProjectService
+  userService: UserService
+}
+
+function createContainer(config: { connectionString: string }): Container {
+  const pool = new Pool({
+    connectionString: config.connectionString,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+  })
+
+  const taskRepository = new TaskRepository(pool)
+  const projectRepository = new ProjectRepository(pool)
+  const userRepository = new UserRepository(pool)
+
+  const taskService = new TaskService(
+    taskRepository,
+    projectRepository,
+    userRepository
+  )
+  const projectService = new ProjectService(projectRepository)
+  const userService = new UserService(userRepository)
+
+  return {
+    pool,
+    taskRepository,
+    projectRepository,
+    userRepository,
+    taskService,
+    projectService,
+    userService,
+  }
+}
+
+export const container = createContainer({
+  connectionString: process.env.DATABASE_URL!,
+})
+```
+
+**Usage in routes:**
+
+```typescript
+import { container } from '../di/container.js'
+
+router.get('/', async (req: AuthRequest, res: Response) => {
+  const tasks = await container.taskService.getTasks(req.workspaceId, req.query)
+  res.json(tasks)
+})
+```
+
+**Benefits:**
+
+- Centralized dependency configuration
+- Single pool instance shared across repositories
+- Easy to mock for testing (inject test container)
+- Clear dependency graph visible at container creation
+
 ### Phase 3: Refactor Routes (HTTP Layer)
 
 **3.1 Refactor src/routes/tasks.ts**
@@ -190,7 +268,7 @@ export class TaskRepository {
     }
   ): Promise<Task[]> {
     let queryText = 'SELECT * FROM tasks WHERE workspace_id = $1'
-    const params: any[] = [workspaceId]
+    const params: string[] = [workspaceId]
     let paramIndex = 2
 
     if (filters?.status) {
@@ -274,7 +352,7 @@ export class TaskRepository {
 
   async delete(id: string, workspaceId: string): Promise<boolean> {
     const result = await this.pool.query(
-      'DELETE FROM tasks WHERE id = $1 AND workspace_id = $2 RETURNING id',
+      'UPDATE tasks SET deleted_at = NOW() WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL RETURNING id',
       [id, workspaceId]
     )
     return result.rows.length > 0
@@ -290,6 +368,27 @@ import { ProjectRepository } from '../../projects/repositories/project.repositor
 import { UserRepository } from '../../users/repositories/user.repository.js'
 import { Task } from '../../../models/Task.js'
 import handoffService from '../../../services/handoff/handoff.service.js'
+
+class TaskNotFoundError extends Error {
+  constructor(message: string = 'Task not found') {
+    super(message)
+    this.name = 'TaskNotFoundError'
+  }
+}
+
+class InvalidProjectError extends Error {
+  constructor(message: string = 'Invalid project_id for workspace') {
+    super(message)
+    this.name = 'InvalidProjectError'
+  }
+}
+
+class InvalidAssigneeError extends Error {
+  constructor(message: string = 'Invalid assignee_id for workspace') {
+    super(message)
+    this.name = 'InvalidAssigneeError'
+  }
+}
 
 export class TaskService {
   constructor(
@@ -331,7 +430,7 @@ export class TaskService {
         data.workspace_id
       )
       if (!project) {
-        throw new Error('Invalid project_id for workspace')
+        throw new InvalidProjectError()
       }
     }
 
@@ -341,11 +440,11 @@ export class TaskService {
         data.workspace_id
       )
       if (!user) {
-        throw new Error('Invalid assignee_id for workspace')
+        throw new InvalidAssigneeError()
       }
     }
 
-    return this.taskRepo.create(data as any)
+    return this.taskRepo.create(data as Task)
   }
 
   async updateTask(
@@ -359,7 +458,7 @@ export class TaskService {
         workspaceId
       )
       if (!project) {
-        throw new Error('Invalid project_id for workspace')
+        throw new InvalidProjectError()
       }
     }
 
@@ -369,13 +468,13 @@ export class TaskService {
         workspaceId
       )
       if (!user) {
-        throw new Error('Invalid assignee_id for workspace')
+        throw new InvalidAssigneeError()
       }
     }
 
     const task = await this.taskRepo.update(id, workspaceId, updates)
     if (!task) {
-      throw new Error('Task not found')
+      throw new TaskNotFoundError()
     }
 
     if (updates.status) {
@@ -392,7 +491,7 @@ export class TaskService {
   async deleteTask(id: string, workspaceId: string): Promise<void> {
     const deleted = await this.taskRepo.delete(id, workspaceId)
     if (!deleted) {
-      throw new Error('Task not found')
+      throw new TaskNotFoundError()
     }
   }
 }
@@ -409,7 +508,12 @@ import {
   updateTaskSchema,
   uuidParamSchema,
 } from '../validation/schemas.js'
-import { taskService } from '../domains/tasks/services/task.service.js'
+import { container } from '../di/container.js'
+import {
+  TaskNotFoundError,
+  InvalidProjectError,
+  InvalidAssigneeError,
+} from '../domains/tasks/services/task.service.js'
 
 const router = Router()
 router.use(authenticateToken)
@@ -419,7 +523,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const workspaceId = req.workspaceId as string
     const { status, priority, project_id } = req.query
 
-    const tasks = await taskService.getTasks(workspaceId, {
+    const tasks = await container.taskService.getTasks(workspaceId, {
       status: status as string,
       priority: priority as string,
       project_id: project_id as string,
@@ -440,7 +544,7 @@ router.get(
       const { id } = req.params
       const workspaceId = req.workspaceId as string
 
-      const task = await taskService.getTaskById(id, workspaceId)
+      const task = await container.taskService.getTaskById(id, workspaceId)
       if (!task) {
         return res.status(404).json({ error: 'Task not found' })
       }
@@ -458,15 +562,18 @@ router.post(
   validate(createTaskSchema),
   async (req: AuthRequest, res: Response) => {
     try {
-      const task = await taskService.createTask({
+      const task = await container.taskService.createTask({
         ...req.body,
         creator_id: req.userId,
         workspace_id: req.workspaceId,
       })
 
       res.status(201).json(task)
-    } catch (error: any) {
-      if (error.message.includes('Invalid')) {
+    } catch (error) {
+      if (
+        error instanceof InvalidProjectError ||
+        error instanceof InvalidAssigneeError
+      ) {
         return res.status(400).json({ error: error.message })
       }
       console.error('Error creating task:', error)
@@ -484,13 +591,20 @@ router.put(
       const { id } = req.params
       const workspaceId = req.workspaceId as string
 
-      const task = await taskService.updateTask(id, workspaceId, req.body)
+      const task = await container.taskService.updateTask(
+        id,
+        workspaceId,
+        req.body
+      )
       res.json(task)
-    } catch (error: any) {
-      if (error.message === 'Task not found') {
-        return res.status(404).json({ error: 'Task not found' })
+    } catch (error) {
+      if (error instanceof TaskNotFoundError) {
+        return res.status(404).json({ error: error.message })
       }
-      if (error.message.includes('Invalid')) {
+      if (
+        error instanceof InvalidProjectError ||
+        error instanceof InvalidAssigneeError
+      ) {
         return res.status(400).json({ error: error.message })
       }
       console.error('Error updating task:', error)
@@ -507,11 +621,11 @@ router.delete(
       const { id } = req.params
       const workspaceId = req.workspaceId as string
 
-      await taskService.deleteTask(id, workspaceId)
+      await container.taskService.deleteTask(id, workspaceId)
       res.status(204).send()
-    } catch (error: any) {
-      if (error.message === 'Task not found') {
-        return res.status(404).json({ error: 'Task not found' })
+    } catch (error) {
+      if (error instanceof TaskNotFoundError) {
+        return res.status(404).json({ error: error.message })
       }
       console.error('Error deleting task:', error)
       res.status(500).json({ error: 'Internal server error' })

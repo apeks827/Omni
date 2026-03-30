@@ -123,6 +123,115 @@ describe('NLP Task Extraction', () => {
     })
   })
 
+  describe('Intent type classification', () => {
+    it('should classify "every day" as habit', () => {
+      const result = extractTaskData('Exercise every day at gym')
+      expect(result.title).toBe('at gym')
+      expect(result.intent_type).toBe('habit')
+    })
+
+    it('should classify "daily" as habit', () => {
+      const result = extractTaskData('Read daily')
+      expect(result.title).toBe('Read')
+      expect(result.intent_type).toBe('habit')
+    })
+
+    it('should classify "morning routine" as routine', () => {
+      const result = extractTaskData('Complete morning routine')
+      expect(result.title).toBe('Complete')
+      expect(result.intent_type).toBe('routine')
+    })
+
+    it('should classify "every Monday" as routine', () => {
+      const result = extractTaskData('Team meeting every Monday')
+      expect(result.title).toBe('Team meeting')
+      expect(result.intent_type).toBe('routine')
+    })
+
+    it('should classify workout as habit', () => {
+      const result = extractTaskData('Workout session every day')
+      expect(result.title).toBe('session')
+      expect(result.intent_type).toBe('habit')
+    })
+
+    it('should default to task when no pattern matches', () => {
+      const result = extractTaskData('Buy groceries tomorrow')
+      expect(result.title).toBe('Buy groceries')
+      expect(result.intent_type).toBeUndefined()
+    })
+
+    it('should prioritize routine over habit', () => {
+      const result = extractTaskData('Check daily routine')
+      expect(result.title).toBe('Check')
+      expect(result.intent_type).toBe('routine')
+    })
+  })
+
+  describe('Duration extraction', () => {
+    it('should extract hours', () => {
+      const result = extractTaskData('Write report 2 hours')
+      expect(result.title).toBe('Write report')
+      expect(result.estimated_duration).toBe(120)
+    })
+
+    it('should extract minutes', () => {
+      const result = extractTaskData('Call client 15 minutes')
+      expect(result.title).toBe('Call client')
+      expect(result.estimated_duration).toBe(15)
+    })
+
+    it('should extract "mins" shorthand', () => {
+      const result = extractTaskData('Review code 30 mins')
+      expect(result.title).toBe('Review code')
+      expect(result.estimated_duration).toBe(30)
+    })
+
+    it('should extract "half an hour"', () => {
+      const result = extractTaskData('Meeting half an hour')
+      expect(result.title).toBe('Meeting')
+      expect(result.estimated_duration).toBe(30)
+    })
+
+    it('should extract "quick" as 5 minutes', () => {
+      const result = extractTaskData('Quick standup')
+      expect(result.title).toBe('standup')
+      expect(result.estimated_duration).toBe(5)
+    })
+
+    it('should extract "short" as 15 minutes', () => {
+      const result = extractTaskData('Short break')
+      expect(result.title).toBe('break')
+      expect(result.estimated_duration).toBe(15)
+    })
+
+    it('should extract "long" as 60 minutes', () => {
+      const result = extractTaskData('Long meeting')
+      expect(result.title).toBe('meeting')
+      expect(result.estimated_duration).toBe(60)
+    })
+  })
+
+  describe('Performance', () => {
+    it('should complete extraction within 100ms', () => {
+      const start = Date.now()
+      const result = extractTaskData(
+        'Buy groceries tomorrow at 5pm high priority'
+      )
+      const duration = Date.now() - start
+      expect(duration).toBeLessThan(100)
+      expect(result.title).toBe('Buy groceries')
+    })
+
+    it('should handle complex input within 100ms', () => {
+      const start = Date.now()
+      const result = extractTaskData(
+        'Team meeting every Monday at 9am for 1 hour high priority at the office'
+      )
+      const duration = Date.now() - start
+      expect(duration).toBeLessThan(100)
+    })
+  })
+
   describe('Edge cases', () => {
     it('should handle task with only date/priority keywords', () => {
       expect(() => extractTaskData('urgent')).toThrow(
@@ -134,6 +243,11 @@ describe('NLP Task Extraction', () => {
       const longTitle = 'a'.repeat(500)
       const result = extractTaskData(longTitle)
       expect(result.title).toBe(longTitle)
+    })
+
+    it('should handle malformed input gracefully', () => {
+      const result = extractTaskData('!!!@@@###')
+      expect(result.title).toBe('!!!@@@###')
     })
   })
 })

@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import { Input, Button, Badge, Stack, Card, Text } from '../design-system'
 import { colors, spacing } from '../design-system/tokens'
+import VoiceInput from './VoiceInput'
 
 interface ExtractedData {
   title: string
@@ -26,6 +27,7 @@ const TaskInput: React.FC<TaskInputProps> = ({
   const [isExtracting, setIsExtracting] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showVoiceInput, setShowVoiceInput] = useState(false)
 
   const [editedTitle, setEditedTitle] = useState('')
   const [editedPriority, setEditedPriority] = useState<
@@ -122,6 +124,25 @@ const TaskInput: React.FC<TaskInputProps> = ({
     setEditedPriority('medium')
     setEditedDueDate('')
     setError(null)
+    setShowVoiceInput(false)
+  }
+
+  const handleVoiceTranscript = useCallback(
+    async (transcript: string) => {
+      setInput(transcript)
+      setShowVoiceInput(false)
+      await handleInputChange(transcript)
+    },
+    [handleInputChange]
+  )
+
+  const handleVoiceError = useCallback((errorMessage: string) => {
+    setError(errorMessage)
+    setShowVoiceInput(false)
+  }, [])
+
+  const toggleVoiceInput = () => {
+    setShowVoiceInput(!showVoiceInput)
   }
 
   const getPriorityColor = (
@@ -145,22 +166,68 @@ const TaskInput: React.FC<TaskInputProps> = ({
     <Card padding="lg" style={{ marginBottom: spacing.lg }}>
       <form onSubmit={handleSubmit}>
         <Stack direction="vertical" spacing="md">
-          <Input
-            type="text"
-            value={input}
-            onChange={e => handleInputChange(e.target.value)}
-            placeholder={placeholder}
-            fullWidth
-            disabled={isSubmitting}
-            aria-label="Task input"
-            aria-describedby="task-input-help"
-          />
+          <div
+            style={{ position: 'relative', display: 'flex', gap: spacing.sm }}
+          >
+            <div style={{ flex: 1 }}>
+              <Input
+                type="text"
+                value={input}
+                onChange={e => handleInputChange(e.target.value)}
+                placeholder={placeholder}
+                fullWidth
+                disabled={isSubmitting}
+                aria-label="Task input"
+                aria-describedby="task-input-help"
+              />
+            </div>
+            <Button
+              type="button"
+              variant={showVoiceInput ? 'danger' : 'outline'}
+              size="md"
+              onClick={toggleVoiceInput}
+              aria-label="Voice input"
+              title="Voice input"
+              style={{ whiteSpace: 'nowrap' }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M8 1a2 2 0 0 0-2 2v5a2 2 0 0 0 4 0V3a2 2 0 0 0-2-2zm0 10a4 4 0 0 1-4-4H3a5 5 0 0 0 4.5 4.975V14h-2v1h5v-1h-2v-2.025A5 5 0 0 0 13 7h-1a4 4 0 0 1-4 4z" />
+              </svg>
+            </Button>
+          </div>
+
+          {showVoiceInput && (
+            <Card
+              padding="md"
+              style={{
+                backgroundColor: colors.gray100,
+                border: `1px solid ${colors.gray200}`,
+              }}
+            >
+              <Stack direction="vertical" spacing="sm">
+                <Text variant="body" style={{ fontWeight: 500 }}>
+                  Voice Input
+                </Text>
+                <VoiceInput
+                  onTranscript={handleVoiceTranscript}
+                  onError={handleVoiceError}
+                />
+              </Stack>
+            </Card>
+          )}
 
           <span
             id="task-input-help"
             style={{ fontSize: '0.875rem', color: colors.gray600 }}
           >
-            Type naturally. We'll extract title, deadline, and priority.
+            Type naturally or click the microphone to use voice input. We'll
+            extract title, deadline, and priority.
           </span>
 
           {isExtracting && (

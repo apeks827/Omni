@@ -3,6 +3,7 @@ import taskRepository, {
   TaskFilters,
   CreateTaskData,
   UpdateTaskData,
+  PaginatedResult,
 } from '../repositories/TaskRepository.js'
 import handoffService from '../../../services/handoff/handoff.service.js'
 import reviewService from '../../../services/review/review.service.js'
@@ -14,7 +15,10 @@ import notificationService from '../../../services/notifications/notification.se
 import rebalancerService from '../../../services/calendar/rebalancer.js'
 
 class TaskService {
-  async listTasks(workspaceId: string, filters: TaskFilters): Promise<Task[]> {
+  async listTasks(
+    workspaceId: string,
+    filters: TaskFilters
+  ): Promise<PaginatedResult<Task>> {
     return taskRepository.findByWorkspace(workspaceId, filters)
   }
 

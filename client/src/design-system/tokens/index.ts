@@ -22,10 +22,15 @@ export const colors = {
     main: '#ffffff',
     subtle: '#f8f9fa',
     inverse: '#343a40',
+    default: '#ffffff',
   },
   border: {
     subtle: '#dee2e6',
     default: '#ced4da',
+  },
+  text: {
+    primary: '#212529',
+    secondary: '#6c757d',
   },
 }
 
@@ -80,6 +85,13 @@ export const sizes = {
   controlSm: '32px',
   controlMd: '40px',
   controlLg: '48px',
+}
+
+export const breakpoints = {
+  mobile: '480px',
+  tablet: '768px',
+  desktop: '1024px',
+  wide: '1200px',
 }
 
 export const transitions = {

@@ -7,11 +7,13 @@ Omni is a task management system designed to be the best in the world. This docu
 ## Tech Stack
 
 - **Backend**: Node.js with Express framework
-- **Database**: PostgreSQL for relational data, Redis for caching/session storage
+- **Database**: PostgreSQL for relational data
 - **Frontend**: React with TypeScript
 - **Authentication**: JWT-based authentication system
 - **Testing**: Jest for unit tests, Cypress for end-to-end tests
 - **Deployment**: Docker containers with CI/CD pipeline
+
+**Note**: This legacy document referenced Redis for caching/session storage, but Redis was never implemented in the actual codebase.
 
 ## Database Schema
 

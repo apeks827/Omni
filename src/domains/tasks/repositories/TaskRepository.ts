@@ -13,6 +13,7 @@ export interface Task {
   due_date?: Date
   created_at: Date
   updated_at: Date
+  deleted_at?: Date | null
   labels?: Array<{ id: string; name: string; color?: string }>
 }
 
@@ -21,6 +22,17 @@ export interface TaskFilters {
   priority?: string
   project_id?: string
   label_id?: string
+  page?: number
+  limit?: number
+  include_deleted?: boolean
+}
+
+export interface PaginatedResult<T> {
+  data: T[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
 }
 
 export interface CreateTaskData {
@@ -81,38 +93,68 @@ class TaskRepository {
   async findByWorkspace(
     workspaceId: string,
     filters: TaskFilters = {}
-  ): Promise<Task[]> {
+  ): Promise<PaginatedResult<Task>> {
+    const page = Math.max(1, filters.page || 1)
+    const limit = Math.min(100, Math.max(1, filters.limit || 20))
+    const offset = (page - 1) * limit
+
     let queryText = 'SELECT t.* FROM tasks t WHERE t.workspace_id = $1'
+    let countQuery = 'SELECT COUNT(*) FROM tasks t WHERE t.workspace_id = $1'
     const params: string[] = [workspaceId]
+    const countParams: string[] = [workspaceId]
     let paramIndex = 2
+    let countParamIndex = 2
+
+    if (!filters.include_deleted) {
+      queryText += ' AND t.deleted_at IS NULL'
+    }
 
     if (filters.status) {
       queryText += ` AND t.status = $${paramIndex}`
+      countQuery += ` AND t.status = $${countParamIndex}`
       params.push(filters.status)
+      countParams.push(filters.status)
       paramIndex++
+      countParamIndex++
     }
 
     if (filters.priority) {
       queryText += ` AND t.priority = $${paramIndex}`
+      countQuery += ` AND t.priority = $${countParamIndex}`
       params.push(filters.priority)
+      countParams.push(filters.priority)
       paramIndex++
+      countParamIndex++
     }
 
     if (filters.project_id) {
       queryText += ` AND t.project_id = $${paramIndex}`
+      countQuery += ` AND t.project_id = $${countParamIndex}`
       params.push(filters.project_id)
+      countParams.push(filters.project_id)
       paramIndex++
+      countParamIndex++
     }
 
     if (filters.label_id) {
       queryText += ` AND t.id IN (
         SELECT task_id FROM task_labels WHERE label_id = $${paramIndex}
       )`
+      countQuery += ` AND t.id IN (
+        SELECT task_id FROM task_labels WHERE label_id = $${countParamIndex}
+      )`
       params.push(filters.label_id)
+      countParams.push(filters.label_id)
       paramIndex++
+      countParamIndex++
     }
 
-    queryText += ' ORDER BY t.created_at DESC'
+    const countResult = await query(countQuery, countParams)
+    const total = parseInt(countResult.rows[0].count, 10)
+    const totalPages = Math.ceil(total / limit)
+
+    queryText += ` ORDER BY t.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
+    params.push(String(limit), String(offset))
 
     const result = await query(queryText, params)
     const tasks = result.rows as Task[]
@@ -121,12 +163,18 @@ class TaskRepository {
       task.labels = await this.getTaskLabels(task.id)
     }
 
-    return tasks
+    return {
+      data: tasks,
+      total,
+      page,
+      limit,
+      totalPages,
+    }
   }
 
   async findById(id: string, workspaceId: string): Promise<Task | null> {
     const result = await query(
-      'SELECT * FROM tasks WHERE id = $1 AND workspace_id = $2',
+      'SELECT * FROM tasks WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL',
       [id, workspaceId]
     )
     if (result.rows.length === 0) return null
@@ -199,7 +247,7 @@ class TaskRepository {
 
   async delete(id: string, workspaceId: string): Promise<boolean> {
     const result = await query(
-      'DELETE FROM tasks WHERE id = $1 AND workspace_id = $2 RETURNING id',
+      'UPDATE tasks SET deleted_at = NOW() WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL RETURNING id',
       [id, workspaceId]
     )
     return result.rows.length > 0

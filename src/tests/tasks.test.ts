@@ -112,8 +112,13 @@ describe('Tasks API Tests', () => {
         .set('Authorization', `Bearer ${authToken}`)
 
       expect(response.status).toBe(200)
-      expect(Array.isArray(response.body)).toBe(true)
-      expect(response.body.length).toBeGreaterThan(0)
+      expect(response.body).toHaveProperty('data')
+      expect(Array.isArray(response.body.data)).toBe(true)
+      expect(response.body).toHaveProperty('total')
+      expect(response.body).toHaveProperty('page')
+      expect(response.body).toHaveProperty('limit')
+      expect(response.body).toHaveProperty('totalPages')
+      expect(response.body.data.length).toBeGreaterThan(0)
     })
 
     it('should filter tasks by status', async () => {
@@ -122,8 +127,9 @@ describe('Tasks API Tests', () => {
         .set('Authorization', `Bearer ${authToken}`)
 
       expect(response.status).toBe(200)
-      expect(Array.isArray(response.body)).toBe(true)
-      response.body.forEach((task: TaskResponse) => {
+      expect(response.body).toHaveProperty('data')
+      expect(Array.isArray(response.body.data)).toBe(true)
+      response.body.data.forEach((task: TaskResponse) => {
         expect(task.status).toBe('todo')
       })
     })
@@ -134,8 +140,9 @@ describe('Tasks API Tests', () => {
         .set('Authorization', `Bearer ${authToken}`)
 
       expect(response.status).toBe(200)
-      expect(Array.isArray(response.body)).toBe(true)
-      response.body.forEach((task: TaskResponse) => {
+      expect(response.body).toHaveProperty('data')
+      expect(Array.isArray(response.body.data)).toBe(true)
+      response.body.data.forEach((task: TaskResponse) => {
         expect(task.priority).toBe('high')
       })
     })
@@ -146,10 +153,22 @@ describe('Tasks API Tests', () => {
         .set('Authorization', `Bearer ${authToken}`)
 
       expect(response.status).toBe(200)
-      expect(Array.isArray(response.body)).toBe(true)
-      response.body.forEach((task: TaskResponse) => {
+      expect(response.body).toHaveProperty('data')
+      expect(Array.isArray(response.body.data)).toBe(true)
+      response.body.data.forEach((task: TaskResponse) => {
         expect(task.project_id).toBe(projectId)
       })
+    })
+
+    it('should support pagination', async () => {
+      const response = await request
+        .get('/api/tasks?page=1&limit=5')
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(200)
+      expect(response.body.page).toBe(1)
+      expect(response.body.limit).toBe(5)
+      expect(Array.isArray(response.body.data)).toBe(true)
     })
 
     it('should get a specific task by id', async () => {

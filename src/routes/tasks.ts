@@ -24,21 +24,25 @@ router.use(authenticateToken)
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const workspaceId = req.workspaceId as string
-    const { status, priority, project_id, label_id } = req.query
+    const { status, priority, project_id, label_id, page, limit } = req.query
 
     const statusStr = typeof status === 'string' ? status : undefined
     const priorityStr = typeof priority === 'string' ? priority : undefined
     const projectIdStr = typeof project_id === 'string' ? project_id : undefined
     const labelIdStr = typeof label_id === 'string' ? label_id : undefined
+    const pageNum = typeof page === 'string' ? parseInt(page, 10) : undefined
+    const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : undefined
 
-    const tasks = await taskService.listTasks(workspaceId, {
+    const result = await taskService.listTasks(workspaceId, {
       status: statusStr,
       priority: priorityStr,
       project_id: projectIdStr,
       label_id: labelIdStr,
+      page: pageNum,
+      limit: limitNum,
     })
 
-    res.json(tasks)
+    res.json(result)
   } catch (error) {
     const { status, body } = handleError(error, 'Failed to fetch tasks')
     res.status(status).json(body)
@@ -354,12 +358,13 @@ router.get('/priorities', async (req: AuthRequest, res: Response) => {
     const workspaceId = req.workspaceId as string
     const userId = req.userId as string
 
-    const tasks = await taskService.listTasks(workspaceId, {
+    const result = await taskService.listTasks(workspaceId, {
       status: 'pending',
+      limit: 100,
     })
 
     const prioritized = await prioritizationService.suggestPriorities(
-      tasks,
+      result.data,
       userId,
       workspaceId
     )

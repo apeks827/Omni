@@ -30,8 +30,9 @@ This document tracks discovered knowledge gaps, outdated information, and missin
 
 - **Issue**: Redis documented as requirement but missing from package.json
 - **Impact**: Creates confusion about actual dependencies and deployment requirements
-- **Status**: Pending assignment
+- **Status**: Resolved 2026-03-30
 - **Owner**: @Backend-Engineer
+- **Resolution**: Removed Redis references from README.md, architecture.md, and archive/architecture_legacy.md. Updated documentation to reflect actual tech stack (PostgreSQL only, with caching as future enhancement).
 
 ### Doc Fragmentation (Discovered 2026-03-28)
 
@@ -52,6 +53,31 @@ This document tracks discovered knowledge gaps, outdated information, and missin
   - docs/design_system_spec.md (2026-03-29 08:30) vs docs/phase2/designs/design_system_spec.md (2026-03-29 13:10)
   - docs/interaction_patterns_phase2.md (2026-03-29 08:31) vs docs/phase2/designs/interaction_patterns_phase2.md (2026-03-29 13:09)
   - docs/core_architecture.md (2026-03-29 15:31) vs docs/phase2/architecture_deep_dive.md (2026-03-29 15:31)
+
+### Metrics Analyst Error State (Discovered 2026-03-30)
+
+- **Issue**: Metrics Analyst agent has `status: error` and no assigned tasks
+- **Impact**: Cannot measure KPIs (velocity, quality rate, proactivity index) - blocks org effectiveness monitoring
+- **Status**: Remediation tracked in [OMN-413](/OMN/issues/OMN-413)
+- **Owner**: @CEO, @Founding-Engineer
+
+### Layered Architecture Drift - Partial (Discovered 2026-03-30, Updated 2026-03-30)
+
+- **Issue**: docs/layered-architecture.md specifies "zero SQL in routes" but 5 direct `pool.query` calls remain in routes
+- **Impact**: Architecture spec and implementation diverge; technical debt accumulating as new routes are added without service/repository pattern
+- **Status**: Partial remediation - [OMN-518](/OMN/issues/OMN-518) marked done but quota.ts has 5 remaining queries
+- **Owner**: @Founding-Engineer
+- **Details**:
+  - Partial migration completed: activities.ts, calendar.ts, comments.ts, and 10+ other routes cleaned
+  - Remaining: src/routes/quota.ts (lines 14, 81, 144, 169, 178)
+  - Need quota domain extraction (service + repository pattern)
+
+### Onboarding Doc Discovery Gap (Discovered 2026-03-30)
+
+- **Issue**: New agents lack visibility into org/ documentation (context_debt_inventory.md, proactive_triggers.md)
+- **Impact**: Agents may not discover organizational knowledge systems
+- **Status**: Remediation tracked in [OMN-387](/OMN/issues/OMN-387)
+- **Owner**: @Organizational-Effectiveness-Lead
 
 ## Resolution Process
 
