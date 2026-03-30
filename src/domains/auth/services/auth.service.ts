@@ -195,7 +195,6 @@ class AuthService {
         userAgent,
         { email }
       )
-      console.log(`Password reset token generated for ${email}: ${token}`)
     } else {
       await logAuditEvent(
         'password_reset_requested_nonexistent',
@@ -254,12 +253,7 @@ class AuthService {
     user_id: string
     token_hash: string
   } | null> {
-    const { query } = await import('../../../config/database.js')
-    const result = await query(
-      `SELECT id, user_id, token_hash FROM password_reset_tokens 
-       WHERE expires_at > NOW() AND used_at IS NULL`
-    )
-    return result.rows.length > 0 ? result.rows[0] : null
+    return authRepository.findValidResetToken()
   }
 
   private async storeResetToken(
@@ -267,19 +261,11 @@ class AuthService {
     tokenHash: string,
     expiresAt: string
   ): Promise<void> {
-    const { query } = await import('../../../config/database.js')
-    await query(
-      'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)',
-      [userId, tokenHash, expiresAt]
-    )
+    return authRepository.storeResetToken(userId, tokenHash, expiresAt)
   }
 
   private async markTokenUsed(tokenId: string): Promise<void> {
-    const { query } = await import('../../../config/database.js')
-    await query(
-      'UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1',
-      [tokenId]
-    )
+    return authRepository.markTokenUsed(tokenId)
   }
 
   private generateToken(userId: string, workspaceId: string): string {
