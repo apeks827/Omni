@@ -10,8 +10,21 @@ import labelsRouter from './routes/labels.js'
 import authRouter from './routes/auth.js'
 import tasksRouter from './routes/tasks.js'
 import aiRouter from './routes/ai.js'
+import metricsRouter from './routes/metrics.js'
 import handoffRouter from './routes/handoff.js'
 import queueRouter from './routes/queue.js'
+import notificationsRouter from './routes/notifications.js'
+import calendarRouter from './routes/calendar.js'
+import notificationScheduler from './services/notifications/notification.scheduler.js'
+import commentsRouter from './routes/comments.js'
+import searchRouter from './routes/search.js'
+import habitsRouter from './routes/habits.js'
+import routinesRouter from './routes/routines.js'
+import timeEntriesRouter from './domains/time-tracking/routes/time-entries.js'
+import timerRouter from './domains/time-tracking/routes/timer.js'
+import analyticsRouter from './domains/time-tracking/routes/analytics.js'
+import activityRouter from './domains/activity/routes/activity.js'
+import taskActivityRouter from './domains/activity/routes/task-activity.js'
 
 const __dirname = path.resolve()
 
@@ -92,9 +105,21 @@ app.use('/api/auth', authRouter)
 app.use('/api/projects', projectsRouter)
 app.use('/api/labels', labelsRouter)
 app.use('/api/tasks', tasksRouter)
+app.use('/api/metrics', metricsRouter)
 app.use('/api/ai', aiRouter)
 app.use('/api/handoff', handoffRouter)
 app.use('/api/queue', queueRouter)
+app.use('/api/notifications', notificationsRouter)
+app.use('/api/calendar', calendarRouter)
+app.use('/api/tasks', commentsRouter)
+app.use('/api/search', searchRouter)
+app.use('/api/habits', habitsRouter)
+app.use('/api/routines', routinesRouter)
+app.use('/api/time-entries', timeEntriesRouter)
+app.use('/api/timer', timerRouter)
+app.use('/api/analytics', analyticsRouter)
+app.use('/api/activity', activityRouter)
+app.use('/api/tasks', taskActivityRouter)
 
 const clientDistPath = path.join(__dirname, '..', 'client', 'dist')
 app.use(express.static(clientDistPath))
@@ -111,6 +136,8 @@ const startServer = async () => {
 
     await pool.query('SELECT NOW()')
     console.log('Database connected successfully')
+
+    notificationScheduler.start()
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`)

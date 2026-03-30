@@ -25,6 +25,7 @@ export const ErrorCodes = {
   USER_NOT_FOUND: 'user_not_found',
   LABEL_NOT_FOUND: 'label_not_found',
   WORKSPACE_NOT_FOUND: 'workspace_not_found',
+  NOT_FOUND: 'not_found',
   UNAUTHORIZED: 'unauthorized',
   FORBIDDEN: 'forbidden',
   INVALID_INPUT: 'invalid_input',

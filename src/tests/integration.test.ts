@@ -258,6 +258,113 @@ describe('Integration Tests', () => {
 
       expect(response.status).toBe(404)
     })
+
+    it('should assign labels to task on creation', async () => {
+      const labelResponse = await request
+        .post('/api/labels')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          name: `Task Label ${Date.now()}`,
+          color: '#FF0000',
+        })
+
+      const labelId = labelResponse.body.id
+
+      const taskResponse = await request
+        .post('/api/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          title: 'Task with Labels',
+          status: 'todo',
+          priority: 'medium',
+          label_ids: [labelId],
+        })
+
+      expect(taskResponse.status).toBe(201)
+      expect(taskResponse.body.labels).toBeDefined()
+      expect(taskResponse.body.labels.length).toBe(1)
+      expect(taskResponse.body.labels[0].id).toBe(labelId)
+    })
+
+    it('should filter tasks by label', async () => {
+      const labelResponse = await request
+        .post('/api/labels')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          name: `Filter Label ${Date.now()}`,
+          color: '#00FF00',
+        })
+
+      const labelId = labelResponse.body.id
+
+      await request
+        .post('/api/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          title: 'Labeled Task 1',
+          label_ids: [labelId],
+        })
+
+      await request
+        .post('/api/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          title: 'Labeled Task 2',
+          label_ids: [labelId],
+        })
+
+      const response = await request
+        .get(`/api/tasks?label_id=${labelId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+
+      expect(response.status).toBe(200)
+      expect(Array.isArray(response.body)).toBe(true)
+      expect(response.body.length).toBeGreaterThanOrEqual(2)
+      response.body.forEach((task: any) => {
+        const hasLabel = task.labels?.some((l: any) => l.id === labelId)
+        expect(hasLabel).toBe(true)
+      })
+    })
+
+    it('should update task labels', async () => {
+      const label1Response = await request
+        .post('/api/labels')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          name: `Update Label 1 ${Date.now()}`,
+          color: '#0000FF',
+        })
+
+      const label2Response = await request
+        .post('/api/labels')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          name: `Update Label 2 ${Date.now()}`,
+          color: '#FFFF00',
+        })
+
+      const taskResponse = await request
+        .post('/api/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          title: 'Task for Label Update',
+          label_ids: [label1Response.body.id],
+        })
+
+      const taskId = taskResponse.body.id
+
+      const updateResponse = await request
+        .put(`/api/tasks/${taskId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          title: 'Task for Label Update',
+          label_ids: [label2Response.body.id],
+        })
+
+      expect(updateResponse.status).toBe(200)
+      expect(updateResponse.body.labels.length).toBe(1)
+      expect(updateResponse.body.labels[0].id).toBe(label2Response.body.id)
+    })
   })
 
   describe('Handoff API', () => {
