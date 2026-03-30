@@ -52,6 +52,7 @@ export default [
         Blob: 'readonly',
         crypto: 'readonly',
         confirm: 'readonly',
+        performance: 'readonly',
         React: 'readonly',
       },
     },
