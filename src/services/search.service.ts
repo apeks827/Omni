@@ -23,6 +23,27 @@ interface SearchResult {
   rank: number
 }
 
+interface SavedSearch {
+  id: string
+  user_id: string
+  workspace_id: string
+  name: string
+  query: string
+  filters: SearchFilters
+  created_at: Date
+  updated_at: Date
+}
+
+interface SearchHistoryEntry {
+  id: string
+  user_id: string
+  workspace_id: string
+  query: string
+  filters: SearchFilters
+  result_count: number
+  searched_at: Date
+}
+
 export class SearchService {
   async searchTasks(
     query: string,
@@ -125,7 +146,7 @@ export class SearchService {
       return ''
     }
 
-    let processed = trimmed.replace(/[""]/g, '"').replace(/'/g, '\'\'')
+    let processed = trimmed.replace(/[""]/g, '"').replace(/'/g, '\'')
 
     const hasPhrase = /"[^"]+"/.test(processed)
     if (hasPhrase) {
@@ -171,7 +192,7 @@ export class SearchService {
       /^NOT\s+/i.test(processed) || /\s+NOT\s+(?=\w)/i.test(processed)
     if (hasNot) {
       let notQuery = ''
-      processed = processed.replace(/NOT\s+/gi, match => {
+      processed = processed.replace(/NOT\s+/gi, () => {
         notQuery = '!'
         return ''
       })
@@ -277,6 +298,159 @@ export class SearchService {
     }
 
     return params
+  }
+
+  async createSavedSearch(
+    userId: string,
+    workspaceId: string,
+    name: string,
+    query: string,
+    filters: SearchFilters = {}
+  ): Promise<SavedSearch> {
+    const sql = `
+      INSERT INTO saved_searches (user_id, workspace_id, name, query, filters)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `
+    const result = await pool.query(sql, [
+      userId,
+      workspaceId,
+      name,
+      query,
+      JSON.stringify(filters),
+    ])
+    return result.rows[0]
+  }
+
+  async getSavedSearches(
+    userId: string,
+    workspaceId: string
+  ): Promise<SavedSearch[]> {
+    const sql = `
+      SELECT * FROM saved_searches
+      WHERE user_id = $1 AND workspace_id = $2
+      ORDER BY created_at DESC
+    `
+    const result = await pool.query(sql, [userId, workspaceId])
+    return result.rows
+  }
+
+  async getSavedSearch(
+    id: string,
+    userId: string,
+    workspaceId: string
+  ): Promise<SavedSearch | null> {
+    const sql = `
+      SELECT * FROM saved_searches
+      WHERE id = $1 AND user_id = $2 AND workspace_id = $3
+    `
+    const result = await pool.query(sql, [id, userId, workspaceId])
+    return result.rows[0] || null
+  }
+
+  async updateSavedSearch(
+    id: string,
+    userId: string,
+    workspaceId: string,
+    updates: { name?: string; query?: string; filters?: SearchFilters }
+  ): Promise<SavedSearch | null> {
+    const fields: string[] = []
+    const params: any[] = []
+    let paramIndex = 1
+
+    if (updates.name !== undefined) {
+      fields.push(`name = $${paramIndex}`)
+      params.push(updates.name)
+      paramIndex++
+    }
+
+    if (updates.query !== undefined) {
+      fields.push(`query = $${paramIndex}`)
+      params.push(updates.query)
+      paramIndex++
+    }
+
+    if (updates.filters !== undefined) {
+      fields.push(`filters = $${paramIndex}`)
+      params.push(JSON.stringify(updates.filters))
+      paramIndex++
+    }
+
+    if (fields.length === 0) {
+      return this.getSavedSearch(id, userId, workspaceId)
+    }
+
+    fields.push('updated_at = CURRENT_TIMESTAMP')
+
+    const sql = `
+      UPDATE saved_searches
+      SET ${fields.join(', ')}
+      WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1} AND workspace_id = $${paramIndex + 2}
+      RETURNING *
+    `
+    params.push(id, userId, workspaceId)
+
+    const result = await pool.query(sql, params)
+    return result.rows[0] || null
+  }
+
+  async deleteSavedSearch(
+    id: string,
+    userId: string,
+    workspaceId: string
+  ): Promise<boolean> {
+    const sql = `
+      DELETE FROM saved_searches
+      WHERE id = $1 AND user_id = $2 AND workspace_id = $3
+    `
+    const result = await pool.query(sql, [id, userId, workspaceId])
+    return (result.rowCount ?? 0) > 0
+  }
+
+  async recordSearchHistory(
+    userId: string,
+    workspaceId: string,
+    query: string,
+    filters: SearchFilters,
+    resultCount: number
+  ): Promise<void> {
+    const insertSql = `
+      INSERT INTO search_history (user_id, workspace_id, query, filters, result_count)
+      VALUES ($1, $2, $3, $4, $5)
+    `
+    await pool.query(insertSql, [
+      userId,
+      workspaceId,
+      query,
+      JSON.stringify(filters),
+      resultCount,
+    ])
+
+    const cleanupSql = `
+      DELETE FROM search_history
+      WHERE id IN (
+        SELECT id FROM search_history
+        WHERE user_id = $1 AND workspace_id = $2
+        ORDER BY searched_at DESC
+        OFFSET 20
+      )
+    `
+    await pool.query(cleanupSql, [userId, workspaceId])
+  }
+
+  async getSearchHistory(
+    userId: string,
+    workspaceId: string,
+    limit: number = 20
+  ): Promise<SearchHistoryEntry[]> {
+    const sql = `
+      SELECT * FROM search_history
+      WHERE user_id = $1 AND workspace_id = $2
+      ORDER BY searched_at DESC
+      LIMIT $3
+    `
+    const result = await pool.query(sql, [userId, workspaceId, limit])
+    return result.rows
   }
 }
 

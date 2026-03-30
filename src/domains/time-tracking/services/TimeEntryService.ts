@@ -37,8 +37,8 @@ class TimeEntryService {
     return timeEntryRepository.create(data)
   }
 
-  async getEntry(id: string, workspaceId: string): Promise<TimeEntry> {
-    const entry = await timeEntryRepository.findById(id, workspaceId)
+  async getEntry(id: string, workspaceId: string, userId: string): Promise<TimeEntry> {
+    const entry = await timeEntryRepository.findById(id, workspaceId, userId)
     if (!entry) {
       throw new AppError(
         ErrorCodes.NOT_FOUND,
@@ -76,8 +76,19 @@ class TimeEntryService {
   async updateEntry(
     id: string,
     workspaceId: string,
+    userId: string,
     data: Partial<CreateTimeEntryData>
   ): Promise<TimeEntry> {
+    const existing = await timeEntryRepository.findById(id, workspaceId, userId)
+    if (!existing) {
+      throw new AppError(
+        ErrorCodes.NOT_FOUND,
+        'Time entry not found',
+        { id },
+        404
+      )
+    }
+    
     const entry = await timeEntryRepository.update(id, workspaceId, data)
     if (!entry) {
       throw new AppError(
@@ -90,7 +101,17 @@ class TimeEntryService {
     return entry
   }
 
-  async deleteEntry(id: string, workspaceId: string): Promise<void> {
+  async deleteEntry(id: string, workspaceId: string, userId: string): Promise<void> {
+    const existing = await timeEntryRepository.findById(id, workspaceId, userId)
+    if (!existing) {
+      throw new AppError(
+        ErrorCodes.NOT_FOUND,
+        'Time entry not found',
+        { id },
+        404
+      )
+    }
+    
     const deleted = await timeEntryRepository.delete(id, workspaceId)
     if (!deleted) {
       throw new AppError(

@@ -51,6 +51,7 @@ export default [
         URLSearchParams: 'readonly',
         Blob: 'readonly',
         crypto: 'readonly',
+        confirm: 'readonly',
         React: 'readonly',
       },
     },

@@ -241,7 +241,7 @@ task,Pay bills,4,1,user@example.com,,2026-04-01,en,UTC`
     it('should handle special characters in task titles', () => {
       const specialCharsData = JSON.stringify([
         { title: 'Task with "quotes"' },
-        { title: "Task with 'apostrophes'" },
+        { title: 'Task with \'apostrophes\'' },
         { title: 'Task with, commas' },
         { title: 'Task with\nnewlines' },
       ])

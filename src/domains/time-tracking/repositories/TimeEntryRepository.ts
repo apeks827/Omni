@@ -47,11 +47,13 @@ class TimeEntryRepository {
     return result.rows[0]
   }
 
-  async findById(id: string, workspaceId: string): Promise<TimeEntry | null> {
-    const result = await pool.query(
-      'SELECT * FROM time_entries WHERE id = $1 AND workspace_id = $2',
-      [id, workspaceId]
-    )
+  async findById(id: string, workspaceId: string, userId?: string): Promise<TimeEntry | null> {
+    const query = userId 
+      ? 'SELECT * FROM time_entries WHERE id = $1 AND workspace_id = $2 AND user_id = $3'
+      : 'SELECT * FROM time_entries WHERE id = $1 AND workspace_id = $2'
+    const params = userId ? [id, workspaceId, userId] : [id, workspaceId]
+    
+    const result = await pool.query(query, params)
     return result.rows[0] || null
   }
 
@@ -149,12 +151,13 @@ class TimeEntryRepository {
     if (fields.length === 0) return this.findById(id, workspaceId)
 
     fields.push('updated_at = NOW()')
+    const whereParamIndex = paramIndex
     values.push(id, workspaceId)
 
     const result = await pool.query(
       `UPDATE time_entries 
        SET ${fields.join(', ')}
-       WHERE id = $${paramIndex} AND workspace_id = $${paramIndex + 1}
+       WHERE id = $${whereParamIndex} AND workspace_id = $${whereParamIndex + 1}
        RETURNING *`,
       values
     )

@@ -90,12 +90,13 @@ class TimerRepository {
     if (fields.length === 0) return null
 
     fields.push('updated_at = NOW()')
+    const whereParamIndex = paramIndex
     values.push(userId, workspaceId)
 
     const result = await pool.query(
       `UPDATE timer_states 
        SET ${fields.join(', ')}
-       WHERE user_id = $${paramIndex} AND workspace_id = $${paramIndex + 1}
+       WHERE user_id = $${whereParamIndex} AND workspace_id = $${whereParamIndex + 1}
          AND status != 'stopped'
        RETURNING *`,
       values

@@ -69,9 +69,10 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const workspaceId = req.workspaceId as string
+    const userId = req.userId as string
     const id = req.params.id as string
 
-    const entry = await timeEntryService.getEntry(id, workspaceId)
+    const entry = await timeEntryService.getEntry(id, workspaceId, userId)
     res.json(entry)
   } catch (error) {
     const { status, body } = handleError(error, 'Failed to fetch time entry')
@@ -82,14 +83,15 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 router.patch('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const workspaceId = req.workspaceId as string
+    const userId = req.userId as string
     const id = req.params.id as string
-    const { start_time, end_time, duration_seconds, description } = req.body
+    const { start_time, end_time, duration_seconds, description, notes } = req.body
 
-    const entry = await timeEntryService.updateEntry(id, workspaceId, {
+    const entry = await timeEntryService.updateEntry(id, workspaceId, userId, {
       start_time: start_time ? new Date(start_time) : undefined,
       end_time: end_time ? new Date(end_time) : undefined,
       duration_seconds,
-      description,
+      description: notes || description,
     })
 
     res.json(entry)
@@ -102,9 +104,10 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const workspaceId = req.workspaceId as string
+    const userId = req.userId as string
     const id = req.params.id as string
 
-    await timeEntryService.deleteEntry(id, workspaceId)
+    await timeEntryService.deleteEntry(id, workspaceId, userId)
     res.status(204).send()
   } catch (error) {
     const { status, body } = handleError(error, 'Failed to delete time entry')

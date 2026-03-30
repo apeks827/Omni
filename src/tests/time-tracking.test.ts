@@ -4,14 +4,14 @@ import express, { Request, Response, NextFunction } from 'express'
 
 const mockQuery = vi.fn()
 
-vi.mock('../../config/database.js', () => ({
+vi.mock('../config/database.js', () => ({
   pool: {
     query: (...args: any[]) => mockQuery(...args),
     on: vi.fn(),
   },
 }))
 
-vi.mock('../../middleware/auth.js', () => ({
+vi.mock('../middleware/auth.js', () => ({
   authenticateToken: (req: Request, _res: Response, next: NextFunction) => {
     ;(req as any).userId = 'user-123'
     ;(req as any).workspaceId = 'workspace-123'
@@ -111,6 +111,7 @@ describe('Time Tracking API', () => {
 
       mockQuery
         .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [mockTimer] })
 
       const response = await request(app)
@@ -160,6 +161,7 @@ describe('Time Tracking API', () => {
   describe('GET /api/analytics', () => {
     it('should return analytics data', async () => {
       mockQuery
+        .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({
           rows: [{ total_seconds: '3600', total_entries: '2' }],
         })
@@ -172,7 +174,6 @@ describe('Time Tracking API', () => {
             },
           ],
         })
-        .mockResolvedValueOnce({ rows: [] })
 
       const startDate = new Date(Date.now() - 86400000)
       const endDate = new Date()
@@ -188,6 +189,7 @@ describe('Time Tracking API', () => {
       expect(response.status).toBe(200)
       expect(response.body.total_seconds).toBe(3600)
       expect(response.body.pomodoro_stats).toBeDefined()
+      expect(response.body.pomodoro_stats.work_sessions).toBe(2)
     })
   })
 })

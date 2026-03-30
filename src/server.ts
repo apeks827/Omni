@@ -20,9 +20,12 @@ import commentsRouter from './routes/comments.js'
 import searchRouter from './routes/search.js'
 import habitsRouter from './routes/habits.js'
 import routinesRouter from './routes/routines.js'
+import templatesRouter from './routes/templates.js'
+import attachmentsRouter from './routes/attachments.js'
 import timeEntriesRouter from './domains/time-tracking/routes/time-entries.js'
 import timerRouter from './domains/time-tracking/routes/timer.js'
 import analyticsRouter from './domains/time-tracking/routes/analytics.js'
+import importExportRouter from './routes/import-export.js'
 import activityRouter from './domains/activity/routes/activity.js'
 import taskActivityRouter from './domains/activity/routes/task-activity.js'
 
@@ -115,9 +118,12 @@ app.use('/api/tasks', commentsRouter)
 app.use('/api/search', searchRouter)
 app.use('/api/habits', habitsRouter)
 app.use('/api/routines', routinesRouter)
+app.use('/api/templates', templatesRouter)
+app.use('/api/tasks', attachmentsRouter)
 app.use('/api/time-entries', timeEntriesRouter)
 app.use('/api/timer', timerRouter)
 app.use('/api/analytics', analyticsRouter)
+app.use('/api', importExportRouter)
 app.use('/api/activity', activityRouter)
 app.use('/api/tasks', taskActivityRouter)
 

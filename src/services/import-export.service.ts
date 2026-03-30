@@ -224,7 +224,12 @@ export async function importTasks(
           skippedCount++
         }
       } else {
-        await taskService.createTask(workspaceId, userId, task)
+        const taskData = {
+          ...task,
+          workspace_id: workspaceId,
+          creator_id: userId,
+        }
+        await taskService.createTask(taskData)
         importedCount++
       }
     } catch (error) {
@@ -245,7 +250,7 @@ export async function importTasks(
   }
 }
 
-function parseImportData(
+export function parseImportData(
   data: string,
   format: 'json' | 'csv' | 'markdown' | 'ical',
   mapping?: ImportMapping

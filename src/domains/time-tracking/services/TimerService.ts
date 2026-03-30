@@ -17,7 +17,7 @@ class TimerService {
         ErrorCodes.VALIDATION_ERROR,
         'Timer already running',
         { task_id: existingTimer.task_id },
-        400
+        409
       )
     }
 
