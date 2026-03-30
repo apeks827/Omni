@@ -43,7 +43,25 @@ const TimeExport: React.FC<TimeExportProps> = ({ logs, onExport }) => {
   }
 
   const handleExport = () => {
-    onExport(exportFormat)
+    const rangeFilters: { start?: Date; end?: Date } = {}
+    const now = new Date()
+    if (dateRange === 'week') {
+      const start = new Date(now)
+      start.setDate(now.getDate() - 7)
+      rangeFilters.start = start
+    } else if (dateRange === 'month') {
+      const start = new Date(now)
+      start.setMonth(now.getMonth() - 1)
+      rangeFilters.start = start
+    } else if (dateRange === 'custom') {
+      if (customStartDate) {
+        rangeFilters.start = new Date(customStartDate)
+        if (customEndDate) {
+          rangeFilters.end = new Date(customEndDate)
+        }
+      }
+    }
+    onExport(exportFormat, rangeFilters)
   }
 
   return (

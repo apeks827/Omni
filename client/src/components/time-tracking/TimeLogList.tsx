@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import {
   colors,
   spacing,
@@ -66,13 +66,19 @@ const groupByDate = (logs: TimeLog[]): Record<string, TimeLog[]> => {
   )
 }
 
+const sanitizeText = (text: string): string => {
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
+}
+
 const TimeLogList: React.FC<TimeLogListProps> = ({
   logs,
   onEdit,
   onDelete,
   onAddManual,
 }) => {
-  const groupedLogs = groupByDate(logs)
+  const groupedLogs = useMemo(() => groupByDate(logs), [logs])
 
   const getTotalForDate = (dateLogs: TimeLog[]): number => {
     return dateLogs.reduce((sum, log) => sum + log.duration, 0)
@@ -213,7 +219,7 @@ const TimeLogList: React.FC<TimeLogListProps> = ({
                             color: colors.gray600,
                           }}
                         >
-                          {log.description}
+                          {sanitizeText(log.description)}
                         </p>
                       )}
                     </div>

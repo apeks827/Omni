@@ -177,7 +177,7 @@ const TimeTrackingContainer: React.FC<TimeTrackingContainerProps> = ({
     }
   }
 
-  const formatLogsForDisplay = (): Array<{
+  const formatLogsForDisplay = useMemo((): Array<{
     id: string
     taskId: string
     taskTitle: string
@@ -195,9 +195,9 @@ const TimeTrackingContainer: React.FC<TimeTrackingContainerProps> = ({
       description: entry.description,
       type: entry.type === 'manual' ? 'manual' : 'tracked',
     }))
-  }
+  }, [timeEntries, taskTitle])
 
-  const calculateAnalytics = () => {
+  const calculateAnalytics = useMemo(() => {
     const now = new Date()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const weekStart = new Date(today)
@@ -251,13 +251,14 @@ const TimeTrackingContainer: React.FC<TimeTrackingContainerProps> = ({
       dailyData,
       taskBreakdown,
     }
-  }
-
-  const analytics = calculateAnalytics()
-  const logs = formatLogsForDisplay()
+  }, [timeEntries, taskTitle])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xl }}>
+      {toast && (
+        <Toast message={toast.message} onDismiss={() => setToast(null)} />
+      )}
+
       <TimeTrackingTimer
         taskId={taskId}
         taskTitle={taskTitle}
@@ -278,21 +279,21 @@ const TimeTrackingContainer: React.FC<TimeTrackingContainerProps> = ({
       ) : null}
 
       <TimeLogList
-        logs={logs}
+        logs={formatLogsForDisplay}
         onEdit={handleEditEntry}
         onDelete={handleDeleteEntry}
         onAddManual={() => setShowManualEntry(true)}
       />
 
       <TimeAnalytics
-        totalToday={analytics.totalToday}
-        totalThisWeek={analytics.totalThisWeek}
-        totalThisMonth={analytics.totalThisMonth}
-        dailyData={analytics.dailyData}
-        taskBreakdown={analytics.taskBreakdown}
+        totalToday={calculateAnalytics.totalToday}
+        totalThisWeek={calculateAnalytics.totalThisWeek}
+        totalThisMonth={calculateAnalytics.totalThisMonth}
+        dailyData={calculateAnalytics.dailyData}
+        taskBreakdown={calculateAnalytics.taskBreakdown}
       />
 
-      <TimeExport logs={logs} onExport={handleExport} />
+      <TimeExport logs={formatLogsForDisplay} onExport={handleExport} />
     </div>
   )
 }
