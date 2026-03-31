@@ -27,15 +27,8 @@ export const authenticateToken = async (
 
   jwt.verify(token, secret, async (err, decoded) => {
     if (err) {
-      console.log('AUTH DEBUG: JWT verify failed', err.message)
       return res.status(403).json({ error: 'Invalid or expired token' })
     }
-    console.log(
-      'AUTH DEBUG: JWT verify OK, userId:',
-      (decoded as any).userId,
-      'workspaceId:',
-      (decoded as any).workspaceId
-    )
 
     const userId = (decoded as any).userId
     const workspaceId = (decoded as any).workspaceId
