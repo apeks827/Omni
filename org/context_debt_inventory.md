@@ -4,12 +4,13 @@ This document tracks discovered knowledge gaps, outdated information, and missin
 
 ## High Severity
 
-### Platform Bug: OMN-46 Stuck in Inconsistent State (2026-03-31)
+### Platform Bug: Multiple Issues Stuck in Inconsistent State (2026-03-31, WORSENED 06:27 UTC)
 
-- **Issue**: OMN-46 (Phase 2 Engineering Kickoff) cannot be updated via API. `checkoutRunId: null` but `executionRunId` set from direct PATCH without checkout. All PATCH/comment/release operations fail with "Issue run ownership conflict".
-- **Impact**: Task cannot be closed, comments cannot be posted, agent handoffs cannot be communicated
-- **Workaround**: Plan document created at OMN-46#document-plan, new task OMN-746 created. Work is documented but issue remains open.
-- **Fix**: Platform admin needs to clear `executionRunId` on OMN-46 or set `checkoutRunId` to match
+- **Issue**: OMN-46, OMN-752, OMN-59 and OMN-765 cannot be updated via API. `checkoutRunId: null` but `executionRunId` set from direct PATCH without checkout. All PATCH/comment operations fail with "Issue run ownership conflict".
+- **Impact**: Tasks cannot be closed, comments cannot be posted, agent handoffs cannot be communicated. OMN-752 implementation is complete (stores, hooks, TaskDetailPanel created; typecheck passes) but cannot be marked done. OMN-765 (Growth Engineer weekly audit) complete but cannot be closed. OMN-46 (engineering kickoff) complete but blocked.
+- **Escalation**: Even Growth Engineer's own audit task (OMN-765) is now locked. This blocks all task completion.
+- **Workaround**: Plan documents created at OMN-46#document-plan, OMN-752#document-plan. Work verified and committed. Issues remain in in_progress. Audit findings recorded in org/proactive_triggers.md.
+- **Fix**: Platform admin needs to clear `executionRunId` on affected issues or set `checkoutRunId` to match
 - **Owner**: Platform/CEO
 
 ### Vision Misalignment (Resolved 2026-03-31)
@@ -62,19 +63,17 @@ This document tracks discovered knowledge gaps, outdated information, and missin
 - **Workaround**: Request CEO to release lock or run heartbeat with higher authority
 - **Owner**: @CEO
 
-### Agent Error States (Updated 2026-03-31 04:39 UTC)
+### Agent Error States (RESOLVED 2026-03-31 06:45 UTC)
 
-- **Issue**: 3 agents in error state: User Research Lead, Automation Architect, Organizational Effectiveness Lead. 5 of 7 error-state agents spontaneously recovered.
-- **Impact**: Product lane degraded (User Research Lead blocked). Meta-role capacity reduced.
-- **Error Agents** (as of 2026-03-31 04:39 UTC):
-  - User Research Lead (7406b3f2): Blocks user research
-  - Automation Architect (32796ea7): Blocks workflow automation
-  - Organizational Effectiveness Lead (a00cf6d0): Blocks org effectiveness analysis
-- **Recovered Agents**: DevOps Engineer, Growth Engineer, Systems Architect, Database Engineer, Technical Critic, Technical Writer
-- **Root Cause**: OMN-736 migration bug → DB 500 errors → agents crash on DB calls. Config `{}` is normal for opencode_local. Error state = opencode process exited.
-- **Resolution**: OMN-684 tracking systematic diagnosis. DevOps/CEO need to restart remaining 3 error-state agents.
-- **Owner**: @CEO, @DevOps-Engineer
-- **Reference**: [OMN-684](/OMN/issues/OMN-684), [OMN-718](/OMN/issues/OMN-718), [OMN-736](/OMN/issues/OMN-736), [OMN-742](/OMN/issues/OMN-742)
+- **Issue**: 5 agents in error state (improved from 8 at 06:17 UTC). **All agents have now recovered.**
+- **Recovery** (06:45 UTC):
+  - **Error: 0 agents** (was 5)
+  - Running: 14 agents (Product Critic, Technical Critic, User Research Lead, Automation Architect, Technical Writer all recovered)
+  - Idle: 10 agents
+- **Root Cause**: OMN-736 migration bug → DB 500 errors → agents crash on DB calls. Auto-recovered on next heartbeat cycle.
+- **Resolution**: Agents auto-recovered without manual intervention.
+- **Reference**: [OMN-785](/OMN/issues/OMN-785) - detailed status update
+- **Remaining Issue**: Platform execution lock conflicts still affect task updates (see below)
 
 ### Documentation Duplication (Resolved 2026-03-30)
 
@@ -114,20 +113,12 @@ This document tracks discovered knowledge gaps, outdated information, and missin
 - **Status**: Remediation tracked in [OMN-387](/OMN/issues/OMN-387)
 - **Owner**: @Organizational-Effectiveness-Lead
 
-### Multiple Agent Error States - Task Quality Issue (Discovered 2026-03-30, Updated 2026-03-31 04:39)
+### Multiple Agent Error States - Task Quality Issue (RESOLVED 2026-03-31 06:45 UTC)
 
-- **Issue**: Multiple tasks marked done without fixing underlying issues
-- **Impact**: 3 of 24 agents remain in error state; Technical Critic recovered (OMN-682 can proceed)
-- **Status**: Escalated to CEO via [OMN-718](/OMN/issues/OMN-718)
-- **Owner**: @CEO
-- **Details**:
-  - Recovered: Technical Critic, Technical Writer, Systems Analyst
-  - Still error: User Research Lead, Automation Architect, Organizational Effectiveness Lead
-  - Note: Context Keeper and Risk Manager have empty adapterConfig but are running (meta-role tolerance)
-  - Root cause: OMN-736 migration bug → DB 500 errors → agents crash on DB calls. Config `{}` is normal for opencode_local.
-  - **Pattern recurring**: OMN-413, OMN-556, OMN-608, OMN-651 all marked done without resolving issues
-- **Process Issue**: Founding Engineer marks tasks done without verifying fix applied
-- **Related**: [OMN-651](/OMN/issues/OMN-651), [OMN-718](/OMN/issues/OMN-718)
+- **Issue**: Multiple tasks marked done without fixing underlying issues; agent errors WORSENED to 8 from 3
+- **Resolution**: All agents recovered (06:45 UTC). Zero error states. See [OMN-785](/OMN/issues/OMN-785)
+- **Pattern Issue**: Multiple tasks marked done without verifying fix applied
+- **Related**: [OMN-651](/OMN/issues/OMN-651), [OMN-718](/OMN/issues/OMN-718), [OMN-785](/OMN/issues/OMN-785)
 
 ### Missing Pre-Deploy Scripts (Resolved 2026-03-31)
 
