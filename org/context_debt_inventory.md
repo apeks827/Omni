@@ -62,21 +62,19 @@ This document tracks discovered knowledge gaps, outdated information, and missin
 - **Workaround**: Request CEO to release lock or run heartbeat with higher authority
 - **Owner**: @CEO
 
-### Agent Error States (Updated 2026-03-31 04:17 UTC)
+### Agent Error States (Updated 2026-03-31 04:39 UTC)
 
-- **Issue**: 5 agents in error state: DevOps Engineer, Growth Engineer, Systems Architect, Automation Architect, Database Engineer. 2 agents recovered (Backend Engineer, Security Engineer).
-- **Impact**: Engineering lane degraded. Circular dependency: BE assigned to fix OMN-736/737 but BE crashed first.
-- **Error Agents** (as of 2026-03-31 04:07 UTC):
-  - DevOps Engineer (b557037f): Blocks OMN-300, CI/CD
-  - Growth Engineer (59dd3338): 112m offline, longest
-  - Systems Architect (a41bea21): Blocks OMN-59 architecture
+- **Issue**: 3 agents in error state: User Research Lead, Automation Architect, Organizational Effectiveness Lead. 5 of 7 error-state agents spontaneously recovered.
+- **Impact**: Product lane degraded (User Research Lead blocked). Meta-role capacity reduced.
+- **Error Agents** (as of 2026-03-31 04:39 UTC):
+  - User Research Lead (7406b3f2): Blocks user research
   - Automation Architect (32796ea7): Blocks workflow automation
-  - Database Engineer (df22e2af): Schema work (OMN-54 done, remaining work blocked)
+  - Organizational Effectiveness Lead (a00cf6d0): Blocks org effectiveness analysis
+- **Recovered Agents**: DevOps Engineer, Growth Engineer, Systems Architect, Database Engineer, Technical Critic, Technical Writer
 - **Root Cause**: OMN-736 migration bug → DB 500 errors → agents crash on DB calls. Config `{}` is normal for opencode_local. Error state = opencode process exited.
-- **Resolution**: OMN-684 + OMN-742 closed with full analysis. Engineering backlog created in OMN-622#plan. Recovery: restart BE opencode → OMN-736/737 processes → remaining 5 agents restart.
-- **Circular Dependency**: BE must recover first to process bug fixes (OMN-736, OMN-737) that prevent crashes
-- **Owner**: @CEO, @DevOps (external process restart required)
-- **Reference**: [OMN-684](/OMN/issues/OMN-684), [OMN-742](/OMN/issues/OMN-742), [OMN-736](/OMN/issues/OMN-736), [OMN-622](/OMN/issues/OMN-622)
+- **Resolution**: OMN-684 tracking systematic diagnosis. DevOps/CEO need to restart remaining 3 error-state agents.
+- **Owner**: @CEO, @DevOps-Engineer
+- **Reference**: [OMN-684](/OMN/issues/OMN-684), [OMN-718](/OMN/issues/OMN-718), [OMN-736](/OMN/issues/OMN-736), [OMN-742](/OMN/issues/OMN-742)
 
 ### Documentation Duplication (Resolved 2026-03-30)
 
@@ -116,18 +114,18 @@ This document tracks discovered knowledge gaps, outdated information, and missin
 - **Status**: Remediation tracked in [OMN-387](/OMN/issues/OMN-387)
 - **Owner**: @Organizational-Effectiveness-Lead
 
-### Multiple Agent Error States - Task Quality Issue (Discovered 2026-03-30, Updated 2026-03-31 06:05)
+### Multiple Agent Error States - Task Quality Issue (Discovered 2026-03-30, Updated 2026-03-31 04:39)
 
 - **Issue**: Multiple tasks marked done without fixing underlying issues
-- **Impact**: 17% of agents (4/24) remain in error state; blocks Phase 2 architecture review
+- **Impact**: 3 of 24 agents remain in error state; Technical Critic recovered (OMN-682 can proceed)
 - **Status**: Escalated to CEO via [OMN-718](/OMN/issues/OMN-718)
 - **Owner**: @CEO
 - **Details**:
-  - Affected agents: Technical Critic, Technical Writer, Systems Analyst (all have `adapterConfig: {}`)
-  - Note: Context Keeper and Risk Manager also have empty adapterConfig but are running (meta-role tolerance)
-  - Root cause: Empty `adapterConfig` - missing cwd, model
+  - Recovered: Technical Critic, Technical Writer, Systems Analyst
+  - Still error: User Research Lead, Automation Architect, Organizational Effectiveness Lead
+  - Note: Context Keeper and Risk Manager have empty adapterConfig but are running (meta-role tolerance)
+  - Root cause: OMN-736 migration bug → DB 500 errors → agents crash on DB calls. Config `{}` is normal for opencode_local.
   - **Pattern recurring**: OMN-413, OMN-556, OMN-608, OMN-651 all marked done without resolving issues
-  - New escalation: [OMN-718](/OMN/issues/OMN-718)
 - **Process Issue**: Founding Engineer marks tasks done without verifying fix applied
 - **Related**: [OMN-651](/OMN/issues/OMN-651), [OMN-718](/OMN/issues/OMN-718)
 

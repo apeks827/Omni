@@ -1,110 +1,134 @@
 name: CI/CD Pipeline
+
 on:
   push:
-    branches: [dev, develop, main]
+    branches:
+      - main
+      - staging
+      - 'feat/**'
   pull_request:
-    branches: [dev, develop]
+    branches:
+      - main
+      - staging
+
+env:
+  NODE_VERSION: '20'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test
+      - name: Run type check
+        run: npm run typecheck
 
       - name: Run linting
         run: npm run lint
 
-  build-and-deploy-dev:
+      - name: Run tests
+        run: npm run test:run
+
+  build:
     needs: test
-    if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build client
         run: npm run build
 
       - name: Build server
         run: npm run server:build
 
-      - name: Deploy to Dev
-        run: |
-          echo "Deploying to development environment"
-          # Add actual deployment commands here
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-  build-and-deploy-prod:
-    needs: test
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
         with:
-          node-version: '20'
-          cache: 'npm'
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{branch == 'main'}}
 
-      - name: Build
-        run: npm run build
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Build server
-        run: npm run server:build
+  deploy-feature:
+    needs: build
+    if: startsWith(github.ref, 'refs/heads/feat/')
+    runs-on: ubuntu-latest
+    environment:
+      name: feature
+      url: https://feature-${{ github.head_ref }}.preview.example.com
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Deploy to Production
+      - name: Download Docker image
         run: |
-          chmod +x ./deploy-prod.sh
-          ./deploy-prod.sh
+          docker load --input image.tar
+        shell: bash
         env:
-          PROD_HOST: ${{ secrets.PROD_HOST }}
-          PROD_USER: ${{ secrets.PROD_USER }}
-          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
 
-  build-and-deploy-staging:
-    needs: test
-    if: github.ref == 'refs/heads/develop'
+      - name: Deploy to feature environment
+        run: |
+          echo "Deploying feature branch ${{ github.head_ref }} to feature environment"
+          # Feature deploys would use a separate preview environment
+          # This requires additional infrastructure (Kubernetes, etc.)
+          echo "Feature deploy stub - configure preview environment URL"
+          echo "IMAGE_TAG=$IMAGE_TAG"
+
+  deploy-staging:
+    needs: build
+    if: github.ref == 'refs/heads/staging'
     runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: http://192.168.1.58:3000
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Build server
-        run: npm run server:build
+      - name: Download Docker image
+        run: docker load --input image.tar
 
       - name: Deploy to Staging
         run: |
@@ -115,26 +139,23 @@ jobs:
           STAGING_USER: ${{ secrets.STAGING_USER }}
           STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
 
-  build-and-deploy-prod:
-    needs: test
+  deploy-production:
+    needs: build
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    environment:
+      name: production
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
+      - name: Download Docker image
+        run: docker load --input image.tar
 
       - name: Deploy to Production
         run: |
-          echo "Deploying to production environment"
-          # Add actual deployment commands here
+          chmod +x ./deploy-prod.sh
+          ./deploy-prod.sh
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_USER: ${{ secrets.PROD_USER }}
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
