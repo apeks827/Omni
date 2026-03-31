@@ -10,6 +10,28 @@ echo "Target: $STAGING_USER@$STAGING_HOST"
 echo "Deploy directory: $DEPLOY_DIR"
 echo ""
 
+echo "Step 0: Running G1 pre-deploy gate checks..."
+echo "Running lint..."
+if ! npm run lint; then
+	echo "ERROR: Lint check failed. Fix errors before deploying."
+	exit 1
+fi
+
+echo "Running typecheck..."
+if ! npm run typecheck; then
+	echo "ERROR: Type check failed. Fix errors before deploying."
+	exit 1
+fi
+
+echo "Running tests..."
+if ! npm run test:run; then
+	echo "ERROR: Tests failed. Fix failing tests before deploying."
+	exit 1
+fi
+
+echo "✓ All G1 gate checks passed"
+echo ""
+
 if [ ! -f ".env.staging" ]; then
 	echo "ERROR: .env.staging not found"
 	exit 1

@@ -14,10 +14,10 @@ export class ActivityRepository {
     entity_type: string
     entity_id: string
     action: string
-    field_changes?: any[]
-    previous_value?: any
-    new_value?: any
-    metadata?: Record<string, any>
+    field_changes?: unknown[]
+    previous_value?: unknown
+    new_value?: unknown
+    metadata?: Record<string, unknown>
     source: string
     parent_entity_type?: string
     parent_entity_id?: string
@@ -95,7 +95,7 @@ export class ActivityRepository {
     filters: ActivityFeedFilters
   ): Promise<{ events: ActivityEventWithDetails[]; totalCount: number }> {
     const conditions: string[] = ['ae.workspace_id = $1']
-    const params: any[] = [workspaceId]
+    const params: (string | string[] | Date)[] = [workspaceId]
     let paramIndex = 2
 
     if (filters.entity_type) {
@@ -152,7 +152,6 @@ export class ActivityRepository {
       paramIndex++
     }
 
-    let cursorCondition = ''
     if (filters.cursor) {
       try {
         const cursor: ActivityCursor = JSON.parse(
@@ -163,7 +162,7 @@ export class ActivityRepository {
         )
         params.push(cursor.last_created_at, cursor.last_id)
         paramIndex += 2
-      } catch (e) {
+      } catch (_e) {
         // Invalid cursor, ignore
       }
     }
@@ -274,33 +273,39 @@ export class ActivityRepository {
     return { events, subtasks }
   }
 
-  private mapRow(row: any): ActivityEvent {
+  private mapRow(row: Record<string, unknown>): ActivityEvent {
     return {
-      id: row.id,
-      workspace_id: row.workspace_id,
-      user_id: row.user_id,
-      event_type: row.event_type,
-      entity_type: row.entity_type,
-      entity_id: row.entity_id,
-      action: row.action,
-      field_changes: row.field_changes,
-      previous_value: row.previous_value,
-      new_value: row.new_value,
-      metadata: row.metadata,
-      source: row.source,
-      parent_entity_type: row.parent_entity_type,
-      parent_entity_id: row.parent_entity_id,
-      related_entity_type: row.related_entity_type,
-      related_entity_id: row.related_entity_id,
-      created_at: row.created_at,
+      id: row.id as string,
+      workspace_id: row.workspace_id as string,
+      user_id: row.user_id as string,
+      event_type: row.event_type as ActivityEvent['event_type'],
+      entity_type: row.entity_type as ActivityEvent['entity_type'],
+      entity_id: row.entity_id as string,
+      action: row.action as ActivityEvent['action'],
+      field_changes: row.field_changes as ActivityEvent['field_changes'],
+      previous_value: row.previous_value as ActivityEvent['previous_value'],
+      new_value: row.new_value as ActivityEvent['new_value'],
+      metadata: row.metadata as ActivityEvent['metadata'],
+      source: row.source as ActivityEvent['source'],
+      parent_entity_type:
+        row.parent_entity_type as ActivityEvent['parent_entity_type'],
+      parent_entity_id:
+        row.parent_entity_id as ActivityEvent['parent_entity_id'],
+      related_entity_type:
+        row.related_entity_type as ActivityEvent['related_entity_type'],
+      related_entity_id:
+        row.related_entity_id as ActivityEvent['related_entity_id'],
+      created_at: row.created_at as Date,
     }
   }
 
-  private mapRowWithDetails(row: any): ActivityEventWithDetails {
+  private mapRowWithDetails(
+    row: Record<string, unknown>
+  ): ActivityEventWithDetails {
     return {
       ...this.mapRow(row),
-      user: row.user,
-      entity: row.entity,
+      user: row.user as ActivityEventWithDetails['user'],
+      entity: row.entity as ActivityEventWithDetails['entity'],
     }
   }
 }

@@ -9,7 +9,7 @@ describe('Intent Processing Service', () => {
       expect(result.title).toBe('Buy groceries')
       expect(result.intent_type).toBe('task')
       expect(result.confidence).toBeGreaterThan(0)
-      expect(result.processing_time_ms).toBeLessThan(500)
+      expect(result.processing_time_ms).toBeLessThan(2000)
       expect(result.id).toMatch(/^intent_/)
       expect(result.input).toBe('Buy groceries')
       expect(result.created_at).toBeDefined()

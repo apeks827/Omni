@@ -49,7 +49,7 @@ const NLPTaskInput: React.FC<NLPTaskInputProps> = ({
     setIsTyping(false)
 
     try {
-      const response = await fetch('/api/tasks/extract', {
+      const response = await fetch('/api/intents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ input: text }),

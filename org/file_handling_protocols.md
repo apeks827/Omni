@@ -107,3 +107,19 @@ If an agent attempts to overwrite a file without following protocol:
 - Regular audits of file operations
 - Tracking of protocol adherence
 - Updates to procedures based on discovered issues
+
+## Missing Document Protocol
+
+When a referenced document does not exist:
+
+1. **Search first**: Use `glob` tool to find similar files in the directory
+2. **Create if absent**: If document is referenced but doesn't exist, create it
+   - Check for similar filenames (e.g., `file.ext` → `file.ts` if expecting TypeScript)
+   - Use existing documents as templates for format guidance
+3. **Write from scratch**: If no template exists, create the document with:
+   - Clear header/title
+   - Relevant sections based on document type
+   - Placeholder content marked with `TODO` where appropriate
+4. **Log the creation**: Comment in the relevant issue noting the document was created
+
+**Never fail on missing documents** - create them instead.

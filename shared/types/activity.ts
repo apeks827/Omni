@@ -63,8 +63,8 @@ export type SourceType =
 
 export interface FieldChange {
   field: string
-  old_value: any
-  new_value: any
+  old_value: unknown
+  new_value: unknown
   display_name?: string
 }
 
@@ -77,9 +77,9 @@ export interface ActivityEvent {
   entity_id: string
   action: ActionType
   field_changes?: FieldChange[]
-  previous_value?: any
-  new_value?: any
-  metadata?: Record<string, any>
+  previous_value?: unknown
+  new_value?: unknown
+  metadata?: Record<string, unknown>
   source: SourceType
   parent_entity_type?: EntityType
   parent_entity_id?: string

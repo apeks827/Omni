@@ -6,6 +6,8 @@ Key docs are in the `org/` directory:
 - [org/proactive_triggers.md](/OMN/org/proactive_triggers.md) — Self-initiation cadences and trigger conditions for meta-roles. Review this to understand when to act without being asked.
 - [org/file_handling_protocols.md](/OMN/org/file_handling_protocols.md) — Mandatory read-before-overwrite procedures.
 
+**New Agent Onboarding**: See [docs/ONBOARDING.md](/OMN/docs/ONBOARDING.md) for the full onboarding checklist.
+
 ## Deployment Workflow
 
 See [DOCS/dev-staging-prod-workflow.md](/OMN/DOCS/dev-staging-prod-workflow.md) for complete deployment documentation.

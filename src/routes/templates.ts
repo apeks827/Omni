@@ -14,7 +14,7 @@ const createTemplateSchema = z.object({
   priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
   estimated_duration: z.number().int().min(1).max(10080).optional(),
   checklist: z.array(z.string().max(500)).optional(),
-  variables: z.record(z.string()).optional(),
+  variables: z.record(z.string(), z.string()).optional(),
 })
 
 const updateTemplateSchema = z.object({
@@ -23,12 +23,12 @@ const updateTemplateSchema = z.object({
   priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
   estimated_duration: z.number().int().min(1).max(10080).optional(),
   checklist: z.array(z.string().max(500)).optional(),
-  variables: z.record(z.string()).optional(),
+  variables: z.record(z.string(), z.string()).optional(),
 })
 
 const instantiateTemplateSchema = z.object({
   project_id: z.string().uuid().optional(),
-  variables: z.record(z.string()).optional(),
+  variables: z.record(z.string(), z.string()).optional(),
 })
 
 router.post(

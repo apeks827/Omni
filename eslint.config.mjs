@@ -19,6 +19,7 @@ export default [
       globals: {
         console: 'readonly',
         process: 'readonly',
+        NodeJS: 'readonly',
         __dirname: 'readonly',
         __filename: 'readonly',
         module: 'readonly',
@@ -90,6 +91,10 @@ export default [
       'storybook-static/',
       'shared/types/*.js',
       '**/*.js.map',
+      'benchmarks/',
+      'grafana/',
+      'monitoring/',
+      'docs/design/',
     ],
   },
 ]

@@ -16,6 +16,7 @@ export type NotificationType =
   | 'deadline_approaching'
   | 'task_completed'
   | 'mentioned_in_comment'
+  | 'task_rescheduled'
 
 export interface NotificationPreference {
   id: string

@@ -15,6 +15,10 @@ export interface Task {
   updated_at: Date
   deleted_at?: Date | null
   labels?: Array<{ id: string; name: string; color?: string }>
+  preferred_device?: string[]
+  preferred_time_of_day?: string[]
+  context_tags?: string[]
+  context_score?: number
 }
 
 export interface TaskFilters {
@@ -25,6 +29,8 @@ export interface TaskFilters {
   page?: number
   limit?: number
   include_deleted?: boolean
+  context_device?: string
+  context_time_of_day?: string
 }
 
 export interface PaginatedResult<T> {
@@ -46,6 +52,9 @@ export interface CreateTaskData {
   workspace_id: string
   due_date?: Date | string
   label_ids?: string[]
+  preferred_device?: string[]
+  preferred_time_of_day?: string[]
+  context_tags?: string[]
 }
 
 export interface UpdateTaskData {
@@ -57,6 +66,9 @@ export interface UpdateTaskData {
   assignee_id?: string
   due_date?: Date
   label_ids?: string[]
+  preferred_device?: string[]
+  preferred_time_of_day?: string[]
+  context_tags?: string[]
 }
 
 class TaskRepository {
@@ -88,6 +100,38 @@ class TaskRepository {
       [taskId]
     )
     return result.rows
+  }
+
+  async getTaskLabelsForMultipleTasks(
+    taskIds: string[]
+  ): Promise<Map<string, Array<{ id: string; name: string; color?: string }>>> {
+    if (taskIds.length === 0) return new Map()
+
+    const placeholders = taskIds.map((_, i) => `$${i + 1}`).join(', ')
+    const result = await query(
+      `SELECT tl.task_id, l.id, l.name, l.color 
+       FROM labels l
+       INNER JOIN task_labels tl ON l.id = tl.label_id
+       WHERE tl.task_id IN (${placeholders})`,
+      taskIds
+    )
+
+    const labelsMap = new Map<
+      string,
+      Array<{ id: string; name: string; color?: string }>
+    >()
+    for (const row of result.rows) {
+      if (!labelsMap.has(row.task_id)) {
+        labelsMap.set(row.task_id, [])
+      }
+      labelsMap.get(row.task_id)!.push({
+        id: row.id,
+        name: row.name,
+        color: row.color,
+      })
+    }
+
+    return labelsMap
   }
 
   async findByWorkspace(
@@ -153,14 +197,59 @@ class TaskRepository {
     const total = parseInt(countResult.rows[0].count, 10)
     const totalPages = Math.ceil(total / limit)
 
-    queryText += ` ORDER BY t.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
-    params.push(String(limit), String(offset))
+    if (filters.context_device || filters.context_time_of_day) {
+      queryText = `
+        SELECT t.*,
+          COALESCE(
+            CASE
+              WHEN t.preferred_device @> ARRAY[$1]::TEXT[] AND t.preferred_time_of_day @> ARRAY[$2]::TEXT[] THEN 100
+              WHEN t.preferred_device @> ARRAY[$1]::TEXT[] OR t.preferred_time_of_day @> ARRAY[$2]::TEXT[] THEN 75
+              WHEN array_length(t.preferred_device, 1) IS NULL AND array_length(t.preferred_time_of_day, 1) IS NULL THEN 50
+              ELSE 0
+            END, 50
+          ) as context_score
+        FROM tasks t
+        WHERE t.workspace_id = $1
+        ${filters.include_deleted ? '' : 'AND t.deleted_at IS NULL'}
+      `
+      params.push(
+        filters.context_device || '',
+        filters.context_time_of_day || ''
+      )
+      paramIndex = 3
+
+      if (filters.status) {
+        queryText += ` AND t.status = $${paramIndex}`
+        params.push(filters.status)
+        paramIndex++
+      }
+      if (filters.priority) {
+        queryText += ` AND t.priority = $${paramIndex}`
+        params.push(filters.priority)
+        paramIndex++
+      }
+      if (filters.project_id) {
+        queryText += ` AND t.project_id = $${paramIndex}`
+        params.push(filters.project_id)
+        paramIndex++
+      }
+
+      queryText += ` ORDER BY context_score DESC, t.priority DESC, t.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
+      params.push(String(limit), String(offset))
+    } else {
+      queryText += ` ORDER BY t.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
+      params.push(String(limit), String(offset))
+    }
 
     const result = await query(queryText, params)
     const tasks = result.rows as Task[]
 
-    for (const task of tasks) {
-      task.labels = await this.getTaskLabels(task.id)
+    if (tasks.length > 0) {
+      const taskIds = tasks.map(t => t.id)
+      const labelsMap = await this.getTaskLabelsForMultipleTasks(taskIds)
+      for (const task of tasks) {
+        task.labels = labelsMap.get(task.id) || []
+      }
     }
 
     return {
@@ -180,13 +269,15 @@ class TaskRepository {
     if (result.rows.length === 0) return null
 
     const task = result.rows[0] as Task
-    task.labels = await this.getTaskLabels(task.id)
+    const labelsMap = await this.getTaskLabelsForMultipleTasks([task.id])
+    task.labels = labelsMap.get(task.id) || []
     return task
   }
 
   async create(data: CreateTaskData): Promise<Task> {
     const result = await query(
-      'INSERT INTO tasks (title, description, status, priority, project_id, assignee_id, creator_id, workspace_id, due_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      `INSERT INTO tasks (title, description, status, priority, project_id, assignee_id, creator_id, workspace_id, due_date, preferred_device, preferred_time_of_day, context_tags) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
       [
         data.title,
         data.description,
@@ -197,6 +288,9 @@ class TaskRepository {
         data.creator_id,
         data.workspace_id,
         data.due_date,
+        data.preferred_device || [],
+        data.preferred_time_of_day || [],
+        data.context_tags || [],
       ]
     )
     const task = result.rows[0] as Task
@@ -216,19 +310,50 @@ class TaskRepository {
     workspaceId: string,
     data: UpdateTaskData
   ): Promise<Task | null> {
+    const setClauses: string[] = [
+      'title = $1',
+      'description = $2',
+      'status = $3',
+      'priority = $4',
+      'project_id = $5',
+      'assignee_id = $6',
+      'due_date = $7',
+      'updated_at = NOW()',
+    ]
+    const values: any[] = [
+      data.title,
+      data.description,
+      data.status,
+      data.priority,
+      data.project_id,
+      data.assignee_id,
+      data.due_date,
+    ]
+    let paramIndex = 8
+
+    if (data.preferred_device !== undefined) {
+      setClauses.push(`preferred_device = $${paramIndex}`)
+      values.push(data.preferred_device)
+      paramIndex++
+    }
+
+    if (data.preferred_time_of_day !== undefined) {
+      setClauses.push(`preferred_time_of_day = $${paramIndex}`)
+      values.push(data.preferred_time_of_day)
+      paramIndex++
+    }
+
+    if (data.context_tags !== undefined) {
+      setClauses.push(`context_tags = $${paramIndex}`)
+      values.push(data.context_tags)
+      paramIndex++
+    }
+
+    values.push(id, workspaceId)
+
     const result = await query(
-      'UPDATE tasks SET title = $1, description = $2, status = $3, priority = $4, project_id = $5, assignee_id = $6, due_date = $7, updated_at = NOW() WHERE id = $8 AND workspace_id = $9 RETURNING *',
-      [
-        data.title,
-        data.description,
-        data.status,
-        data.priority,
-        data.project_id,
-        data.assignee_id,
-        data.due_date,
-        id,
-        workspaceId,
-      ]
+      `UPDATE tasks SET ${setClauses.join(', ')} WHERE id = $${paramIndex} AND workspace_id = $${paramIndex + 1} RETURNING *`,
+      values
     )
     if (result.rows.length === 0) return null
 

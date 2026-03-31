@@ -18,6 +18,7 @@ import notificationsRouter from './routes/notifications.js'
 import calendarRouter from './routes/calendar.js'
 import notificationScheduler from './services/notifications/notification.scheduler.js'
 import patternUpdateJob from './services/ml/jobs/pattern-update.job.js'
+import rescheduleScheduler from './services/scheduling/reschedule.scheduler.js'
 import commentsRouter from './routes/comments.js'
 import searchRouter from './routes/search.js'
 import habitsRouter from './routes/habits.js'
@@ -37,8 +38,13 @@ import goalsRouter from './routes/goals.js'
 import keyResultsRouter from './routes/keyResults.js'
 import taskGoalLinksRouter from './routes/taskGoalLinks.js'
 import scheduleRouter from './routes/schedule.js'
+import rescheduleRouter from './routes/reschedule.js'
+import classifierRouter from './routes/classifier.js'
+import suggestionRouter from './services/suggestions/routes.js'
 import { rateLimitMiddleware } from './middleware/rateLimitAdvanced.js'
 import correlationMiddleware from './middleware/correlation.js'
+import { responseTimeMiddleware } from './middleware/responseTime.js'
+import { errorHandler } from './middleware/errorCapture.js'
 import { logger } from './utils/logger.js'
 
 const __dirname = path.resolve()
@@ -115,6 +121,7 @@ app.disable('x-powered-by')
 app.set('trust proxy', 1)
 
 app.use(correlationMiddleware)
+app.use(responseTimeMiddleware)
 
 app.use(
   '/api',
@@ -151,6 +158,7 @@ app.use('/api/queue', queueRouter)
 app.use('/api/notifications', notificationsRouter)
 app.use('/api/calendar', calendarRouter)
 app.use('/api/schedule', scheduleRouter)
+app.use('/api/reschedule', rescheduleRouter)
 app.use('/api/tasks', commentsRouter)
 app.use('/api/search', searchRouter)
 app.use('/api/habits', habitsRouter)
@@ -169,6 +177,8 @@ app.use('/api/key-results', keyResultsRouter)
 app.use('/api/tasks', taskGoalLinksRouter)
 app.use('/api/quota', quotaRouter)
 app.use('/api/users', energyRouter)
+app.use('/api/classifier', classifierRouter)
+app.use('/api/tasks/suggestions', suggestionRouter)
 
 const clientDistPath = path.join(__dirname, '..', 'client', 'dist')
 app.use(express.static(clientDistPath))
@@ -176,6 +186,8 @@ app.use(express.static(clientDistPath))
 app.get('*', (req, res) => {
   res.sendFile(path.join(clientDistPath, 'index.html'))
 })
+
+app.use(errorHandler)
 
 const startServer = async () => {
   try {
@@ -188,6 +200,7 @@ const startServer = async () => {
 
     notificationScheduler.start()
     patternUpdateJob.start()
+    rescheduleScheduler.start()
 
     app.listen(PORT, () => {
       logger.info({ port: PORT }, `Server running on port ${PORT}`)

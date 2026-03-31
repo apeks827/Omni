@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express'
 import { randomUUID } from 'crypto'
 import { query } from '../config/database.js'
 import { AuthRequest } from './auth.js'
+import { AppError, ErrorCodes } from '../utils/errors.js'
+import { logger } from '../utils/logger.js'
 
 export interface ErrorCaptureRequest extends AuthRequest {
   correlationId?: string
@@ -62,6 +64,31 @@ export const errorHandler = async (
 ) => {
   const correlationId = req.correlationId || randomUUID()
 
+  if (err instanceof AppError) {
+    await captureError('backend', err.code, err.message, {
+      correlationId,
+      stackTrace: err.stack,
+      context: {
+        method: req.method,
+        path: req.path,
+        query: req.query,
+        body: req.body,
+        details: err.details,
+      },
+      userId: req.userId,
+      severity: err.statusCode >= 500 ? 'error' : 'warning',
+    })
+
+    return res.status(err.statusCode).json({
+      code: err.code,
+      message: err.message,
+      details: err.details,
+      correlationId,
+    })
+  }
+
+  logger.error({ error: err, correlationId }, 'Unhandled error')
+
   await captureError('backend', err.name || 'UnknownError', err.message, {
     correlationId,
     stackTrace: err.stack,
@@ -76,7 +103,8 @@ export const errorHandler = async (
   })
 
   res.status(500).json({
-    error: 'Internal server error',
+    code: ErrorCodes.INTERNAL_ERROR,
+    message: 'Internal server error',
     correlationId,
   })
 }

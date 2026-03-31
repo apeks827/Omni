@@ -47,12 +47,16 @@ class TimeEntryRepository {
     return result.rows[0]
   }
 
-  async findById(id: string, workspaceId: string, userId?: string): Promise<TimeEntry | null> {
-    const query = userId 
+  async findById(
+    id: string,
+    workspaceId: string,
+    userId?: string
+  ): Promise<TimeEntry | null> {
+    const query = userId
       ? 'SELECT * FROM time_entries WHERE id = $1 AND workspace_id = $2 AND user_id = $3'
       : 'SELECT * FROM time_entries WHERE id = $1 AND workspace_id = $2'
     const params = userId ? [id, workspaceId, userId] : [id, workspaceId]
-    
+
     const result = await pool.query(query, params)
     return result.rows[0] || null
   }
@@ -173,6 +177,40 @@ class TimeEntryRepository {
     return result.rowCount !== null && result.rowCount > 0
   }
 
+  async getByTask(
+    workspaceId: string,
+    userId: string,
+    taskId: string | undefined,
+    startDate: Date,
+    endDate: Date
+  ): Promise<TimeEntry[]> {
+    const conditions = [
+      'workspace_id = $1',
+      'user_id = $2',
+      'start_time >= $3',
+      'start_time <= $4',
+    ]
+    const params: any[] = [workspaceId, userId, startDate, endDate]
+
+    if (taskId) {
+      conditions.push('task_id = $5')
+      params.push(taskId)
+    }
+
+    const whereClause = conditions.join(' AND ')
+
+    const result = await pool.query(
+      `SELECT te.*, t.title as task_title, t.project_id 
+       FROM time_entries te
+       LEFT JOIN tasks t ON te.task_id = t.id
+       WHERE ${whereClause}
+       ORDER BY te.start_time DESC`,
+      params
+    )
+
+    return result.rows
+  }
+
   async getAnalytics(
     workspaceId: string,
     userId: string,
@@ -193,8 +231,8 @@ class TimeEntryRepository {
         groupByClause = 'DATE(start_time)'
         break
       case 'week':
-        selectClause = 'DATE_TRUNC(\'week\', start_time) as week'
-        groupByClause = 'DATE_TRUNC(\'week\', start_time)'
+        selectClause = "DATE_TRUNC('week', start_time) as week"
+        groupByClause = "DATE_TRUNC('week', start_time)"
         break
       case 'project':
         selectClause = 't.project_id'

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Task, RecurrenceRule } from '../types'
 import RecurrencePicker from './RecurrencePicker'
+import DueDatePicker from './DueDatePicker'
 
 interface TaskFormProps {
   onSubmit: (
@@ -20,6 +21,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
   const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule | null>(
     null
   )
+  const [dueDate, setDueDate] = useState<Date | undefined>(undefined)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,6 +33,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
       status,
       priority,
       recurrence_rule: recurrenceRule,
+      due_date: dueDate,
     })
 
     setTitle('')
@@ -38,6 +41,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
     setStatus('todo')
     setPriority('medium')
     setRecurrenceRule(null)
+    setDueDate(undefined)
   }
 
   return (
@@ -81,6 +85,13 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
             border: '1px solid #ccc',
           }}
         />
+      </div>
+
+      <div style={{ marginBottom: '10px' }}>
+        <label style={{ display: 'block', marginBottom: '5px' }}>
+          Due Date
+        </label>
+        <DueDatePicker value={dueDate || null} onChange={setDueDate} />
       </div>
 
       <div style={{ marginBottom: '10px', display: 'flex', gap: '10px' }}>

@@ -101,8 +101,8 @@ class ImportExportApi {
     conflicts: Array<{
       id: string
       type: string
-      localItem: any
-      importedItem: any
+      localItem: unknown
+      importedItem: unknown
     }>
     sampleTasks: Array<{ title: string; status: string; priority: string }>
   }> {

@@ -100,52 +100,52 @@ const DiffView: React.FC<{ changes: Activity['changes'] }> = ({ changes }) => {
             <>
               <span
                 style={{
-                  color: getStatusColor(change.old as string),
+                  color: getStatusColor(String(change.old)),
                   textDecoration: 'line-through',
                   opacity: 0.7,
                 }}
               >
-                {change.old || 'none'}
+                {String(change.old ?? 'none')}
               </span>
               <span style={{ margin: '0 4px', color: colors.gray400 }}>→</span>
               <span
                 style={{
-                  color: getStatusColor(change.new as string),
+                  color: getStatusColor(String(change.new ?? '')),
                   fontWeight: 500,
                 }}
               >
-                {change.new || 'none'}
+                {String(change.new ?? 'none')}
               </span>
             </>
           ) : change.field === 'priority' ? (
             <>
               <span
                 style={{
-                  color: getPriorityColor(change.old as string),
+                  color: getPriorityColor(String(change.old)),
                   textDecoration: 'line-through',
                   opacity: 0.7,
                 }}
               >
-                {change.old || 'none'}
+                {String(change.old ?? 'none')}
               </span>
               <span style={{ margin: '0 4px', color: colors.gray400 }}>→</span>
               <span
                 style={{
-                  color: getPriorityColor(change.new as string),
+                  color: getPriorityColor(String(change.new ?? '')),
                   fontWeight: 500,
                 }}
               >
-                {change.new || 'none'}
+                {String(change.new ?? 'none')}
               </span>
             </>
           ) : (
             <>
               <span style={{ color: colors.gray700 }}>
-                {change.old || 'empty'}
+                {String(change.old ?? 'empty')}
               </span>
               <span style={{ margin: '0 4px', color: colors.gray400 }}>→</span>
               <span style={{ color: colors.primary, fontWeight: 500 }}>
-                {change.new || 'empty'}
+                {String(change.new ?? 'empty')}
               </span>
             </>
           )}

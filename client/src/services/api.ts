@@ -49,6 +49,8 @@ class ApiClient {
     priority?: string
     sortBy?: string
     sortOrder?: 'asc' | 'desc'
+    context_device?: string
+    context_time_of_day?: string
   }): Promise<{ tasks: Task[]; total: number }> {
     const queryParams = new URLSearchParams()
     if (params?.limit) queryParams.set('limit', params.limit.toString())
@@ -57,10 +59,37 @@ class ApiClient {
     if (params?.priority) queryParams.set('priority', params.priority)
     if (params?.sortBy) queryParams.set('sort_by', params.sortBy)
     if (params?.sortOrder) queryParams.set('sort_order', params.sortOrder)
+    if (params?.context_device)
+      queryParams.set('context_device', params.context_device)
+    if (params?.context_time_of_day)
+      queryParams.set('context_time_of_day', params.context_time_of_day)
 
     const query = queryParams.toString()
     return this.request<{ tasks: Task[]; total: number }>(
       `/tasks${query ? `?${query}` : ''}`
+    )
+  }
+
+  async getContextAwareTasks(params?: {
+    limit?: number
+    offset?: number
+    status?: string
+    priority?: string
+    context_device?: string
+    context_time_of_day?: string
+  }): Promise<{ tasks: Task[]; total: number }> {
+    const queryParams = new URLSearchParams()
+    if (params?.limit) queryParams.set('limit', params.limit.toString())
+    if (params?.offset) queryParams.set('offset', params.offset.toString())
+    if (params?.status) queryParams.set('status', params.status)
+    if (params?.priority) queryParams.set('priority', params.priority)
+    if (params?.context_device) queryParams.set('device', params.context_device)
+    if (params?.context_time_of_day)
+      queryParams.set('time_of_day', params.context_time_of_day)
+
+    const query = queryParams.toString()
+    return this.request<{ tasks: Task[]; total: number }>(
+      `/tasks/context-aware${query ? `?${query}` : ''}`
     )
   }
 
@@ -76,7 +105,14 @@ class ApiClient {
     })
   }
 
-  async updateTask(id: string, updates: Partial<Task>): Promise<Task> {
+  async updateTask(
+    id: string,
+    updates: Partial<Task> & {
+      preferred_device?: string[]
+      preferred_time_of_day?: string[]
+      context_tags?: string[]
+    }
+  ): Promise<Task> {
     return this.request<Task>(`/tasks/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates),

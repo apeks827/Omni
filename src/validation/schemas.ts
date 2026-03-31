@@ -57,6 +57,11 @@ export const createTaskSchema = z.object({
   assignee_id: z.string().uuid().optional(),
   due_date: z.string().datetime().optional(),
   label_ids: z.array(z.string().uuid()).optional(),
+  preferred_device: z.array(z.enum(['desktop', 'mobile', 'tablet'])).optional(),
+  preferred_time_of_day: z
+    .array(z.enum(['morning', 'afternoon', 'evening', 'night']))
+    .optional(),
+  context_tags: z.array(z.string().max(50)).optional(),
 })
 
 export const updateTaskSchema = z.object({
@@ -68,6 +73,11 @@ export const updateTaskSchema = z.object({
   assignee_id: z.string().uuid().optional().nullable(),
   due_date: z.string().datetime().optional().nullable(),
   label_ids: z.array(z.string().uuid()).optional(),
+  preferred_device: z.array(z.enum(['desktop', 'mobile', 'tablet'])).optional(),
+  preferred_time_of_day: z
+    .array(z.enum(['morning', 'afternoon', 'evening', 'night']))
+    .optional(),
+  context_tags: z.array(z.string().max(50)).optional(),
 })
 
 export const createLabelSchema = z.object({

@@ -26,6 +26,8 @@ export const ErrorCodes = {
   PROJECT_NOT_FOUND: 'project_not_found',
   USER_NOT_FOUND: 'user_not_found',
   LABEL_NOT_FOUND: 'label_not_found',
+  GOAL_NOT_FOUND: 'goal_not_found',
+  KEY_RESULT_NOT_FOUND: 'key_result_not_found',
   WORKSPACE_NOT_FOUND: 'workspace_not_found',
   NOT_FOUND: 'not_found',
   UNAUTHORIZED: 'unauthorized',
@@ -35,9 +37,40 @@ export const ErrorCodes = {
   INTERNAL_ERROR: 'internal_error',
   INVALID_CREDENTIALS: 'invalid_credentials',
   TOKEN_EXPIRED: 'token_expired',
+  TOKEN_INVALID: 'token_invalid',
   VALIDATION_ERROR: 'validation_error',
   CONFLICT: 'conflict',
+  RATE_LIMIT_EXCEEDED: 'rate_limit_exceeded',
+  DATABASE_ERROR: 'database_error',
+  SERVICE_UNAVAILABLE: 'service_unavailable',
 } as const
+
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes]
+
+export const NotFoundError = (resource: string, id?: string) =>
+  new AppError(
+    ErrorCodes.NOT_FOUND,
+    `${resource}${id ? ` with id ${id}` : ''} not found`,
+    { resource, id },
+    404
+  )
+
+export const UnauthorizedError = (message = 'Authentication required') =>
+  new AppError(ErrorCodes.UNAUTHORIZED, message, {}, 401)
+
+export const ForbiddenError = (message = 'Access denied') =>
+  new AppError(ErrorCodes.FORBIDDEN, message, {}, 403)
+
+export const ValidationError = (details: Record<string, unknown>) =>
+  new AppError(ErrorCodes.VALIDATION_ERROR, 'Validation failed', details, 400)
+
+export const ConflictError = (
+  message: string,
+  details?: Record<string, unknown>
+) => new AppError(ErrorCodes.CONFLICT, message, details, 409)
+
+export const DatabaseError = (message = 'Database operation failed') =>
+  new AppError(ErrorCodes.DATABASE_ERROR, message, {}, 500)
 
 export function handleError(
   error: unknown,

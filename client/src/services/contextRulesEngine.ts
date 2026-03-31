@@ -360,7 +360,7 @@ class ContextRulesEngine {
 
   private generateSuggestions(
     rule: ContextRule,
-    context: Context
+    _context: Context
   ): TaskSuggestion[] {
     const suggestions: TaskSuggestion[] = []
     const suggestActions = rule.actions.filter(a => a.type === 'suggest')

@@ -80,6 +80,36 @@ class AuthRepository {
       [passwordHash, userId]
     )
   }
+
+  async findValidResetToken(): Promise<{
+    id: string
+    user_id: string
+    token_hash: string
+  } | null> {
+    const result = await query(
+      `SELECT id, user_id, token_hash FROM password_reset_tokens 
+       WHERE expires_at > NOW() AND used_at IS NULL`
+    )
+    return result.rows.length > 0 ? result.rows[0] : null
+  }
+
+  async storeResetToken(
+    userId: string,
+    tokenHash: string,
+    expiresAt: string
+  ): Promise<void> {
+    await query(
+      'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)',
+      [userId, tokenHash, expiresAt]
+    )
+  }
+
+  async markTokenUsed(tokenId: string): Promise<void> {
+    await query(
+      'UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1',
+      [tokenId]
+    )
+  }
 }
 
 export default new AuthRepository()

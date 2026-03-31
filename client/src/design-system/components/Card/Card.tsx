@@ -6,8 +6,12 @@ interface CardProps {
   padding?: keyof typeof spacing
   shadow?: keyof typeof shadows
   borderRadius?: keyof typeof borderRadius
+  borderColor?: string
   style?: React.CSSProperties
   className?: string
+  onClick?: () => void
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
 }
 
 const Card: React.FC<CardProps> = ({
@@ -15,20 +19,30 @@ const Card: React.FC<CardProps> = ({
   padding = 'md',
   shadow = 'sm',
   borderRadius: radius = 'md',
+  borderColor,
   style,
   className,
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
 }) => {
   const baseStyles: React.CSSProperties = {
     backgroundColor: colors.white,
     padding: spacing[padding],
     boxShadow: shadows[shadow],
     borderRadius: borderRadius[radius],
-    border: `1px solid ${colors.gray200}`,
+    border: `1px solid ${borderColor || colors.gray200}`,
     ...style,
   }
 
   return (
-    <div style={baseStyles} className={className}>
+    <div
+      style={baseStyles}
+      className={className}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
       {children}
     </div>
   )

@@ -523,4 +523,63 @@ Omni becomes the "personal COO" that transforms chaotic incoming tasks, habits, 
 
 ---
 
+## 7. Product Critic Addendum (Phase 2 Review)
+
+**Reviewed**: 2026-03-31  
+**Reviewer**: Product Critic
+
+### Additional Edge Cases (Post-Phase 2)
+
+- **EC-7.1**: Profanity/inappropriate content input
+  - System should detect and filter inappropriate content
+  - Present user with "Please rephrase" message
+  - Log attempt for moderation review
+
+- **EC-7.2**: Voice input for mobile users
+  - Consider as Phase 2.5 scope
+  - Speech-to-text integration required
+
+### Accessibility Requirements
+
+- **AR-1**: All user flows must comply with WCAG 2.1 AA
+  - Screen reader compatibility for all flows
+  - Keyboard navigation for all interactions
+  - Color contrast ratios (5:1 minimum)
+  - Focus indicators on all interactive elements
+
+### Mobile-First Considerations
+
+- **MF-1**: Voice input as primary mobile input method
+- **MF-2**: Touch targets minimum 48x48dp
+- **MF-3**: Offline-first architecture for mobile
+- **MF-4**: Gesture-based navigation for common actions
+
+### Undo/Redo Specification
+
+- **UR-1**: All user actions must be reversible
+  - "Undo" available for 30 seconds after action
+  - "Undo" available in notification for 5 minutes
+  - Batch undo for bulk operations
+  - Clear "Action completed" confirmation with undo link
+
+### Bulk Operations Flow
+
+1. User selects multiple tasks (checkbox or swipe gesture)
+2. Bulk action bar appears: Edit, Delete, Move, Reschedule
+3. User selects action and provides new value
+4. Confirmation modal shows affected tasks count
+5. Execute action with progress indicator
+6. Success notification with "Undo" option
+
+### Notification Enhancement
+
+- **NE-1**: Do Not Disturb (DND) mode
+  - User-configurable DND hours
+  - P1 notifications can break through DND
+  - "Emergency contact" can trigger P1 notifications
+
+---
+
+_This addendum was added by Product Critic review and does not replace the core specification above._
+
 This specification provides the executable requirements needed for Phase 2 development of Omni's core features. It bridges the gap between the product vision outlined in Phase 1 and the technical implementation needed to deliver the "Personal COO" experience.

@@ -91,7 +91,11 @@ export const GoalDetail: React.FC<GoalDetailProps> = ({
       await apiClient.createKeyResult(goalId, {
         title: newKR.title,
         target_value: parseFloat(newKR.target_value) || 0,
-        measurement_type: newKR.measurement_type as any,
+        measurement_type: newKR.measurement_type as
+          | 'numeric'
+          | 'percentage'
+          | 'currency'
+          | 'boolean',
         unit: newKR.unit || undefined,
       })
       setNewKR({

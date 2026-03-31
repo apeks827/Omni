@@ -5,6 +5,7 @@ import taskRepository, {
   UpdateTaskData,
   PaginatedResult,
 } from '../repositories/TaskRepository.js'
+import labelRepository from '../../labels/repositories/label.repository.js'
 import handoffService from '../../../services/handoff/handoff.service.js'
 import reviewService from '../../../services/review/review.service.js'
 import queueService from '../../../services/queue/queue.service.js'
@@ -13,6 +14,7 @@ import { scheduleTask } from '../../../services/scheduling/scheduler.js'
 import { AppError, ErrorCodes } from '../../../utils/errors.js'
 import notificationService from '../../../services/notifications/notification.service.js'
 import rebalancerService from '../../../services/calendar/rebalancer.js'
+import rescheduleTrigger from '../../../services/scheduling/reschedule-trigger.js'
 
 class TaskService {
   async listTasks(
@@ -120,15 +122,11 @@ class TaskService {
     labelIds: string[],
     workspaceId: string
   ): Promise<void> {
-    const placeholders = labelIds.map((_, i) => `$${i + 1}`).join(', ')
-
-    const { query } = await import('../../../config/database.js')
-    const labelCheck = await query(
-      `SELECT id FROM labels WHERE id IN (${placeholders}) AND workspace_id = $${labelIds.length + 1}`,
-      [...labelIds, workspaceId]
+    const isValid = await labelRepository.validateLabelIds(
+      labelIds,
+      workspaceId
     )
-
-    if (labelCheck.rows.length !== labelIds.length) {
+    if (!isValid) {
       throw new AppError(
         ErrorCodes.VALIDATION_ERROR,
         'Invalid label_id for workspace',
@@ -230,6 +228,7 @@ class TaskService {
     if (data.status === 'completed' && userId) {
       try {
         await queueService.autoAssignNext(updatedTask.id, userId, workspaceId)
+        rescheduleTrigger.onTaskCompleted(updatedTask.id, userId, workspaceId)
       } catch (queueError) {
         console.error('Error auto-assigning next task:', queueError)
       }

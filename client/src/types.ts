@@ -6,12 +6,22 @@ export type TaskStatus =
   | 'todo'
   | 'done'
 
+export type TaskCategory =
+  | 'work'
+  | 'personal'
+  | 'health'
+  | 'learning'
+  | 'errands'
+  | 'meetings'
+  | 'admin'
+
 export interface Task {
   id: string
   title: string
   description?: string
   status: TaskStatus
   priority: 'low' | 'medium' | 'high' | 'critical'
+  category?: TaskCategory
   project_id?: string
   assignee_id?: string
   creator_id?: string
@@ -20,6 +30,10 @@ export interface Task {
   duration_minutes?: number
   created_at: Date
   updated_at: Date
+  preferred_device?: string[]
+  preferred_time_of_day?: string[]
+  context_tags?: string[]
+  context_score?: number
 }
 
 export interface ScheduleSlot {
@@ -274,8 +288,8 @@ export type ActivityActionType =
 
 export interface ActivityChange {
   field: string
-  old: any
-  new: any
+  old: unknown
+  new: unknown
 }
 
 export interface Activity {

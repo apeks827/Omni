@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterEach } from 'vitest'
 import supertest from 'supertest'
 import express from 'express'
 import cors from 'cors'
@@ -6,6 +6,7 @@ import helmet from 'helmet'
 import authRouter from '../routes/auth.js'
 import tasksRouter from '../routes/tasks.js'
 import projectsRouter from '../routes/projects.js'
+import { cacheService } from '../services/cache/CacheService.js'
 
 const app = express()
 app.use(helmet())
@@ -26,6 +27,10 @@ describe('Tasks API Tests', () => {
   let authToken: string
   let createdTaskId: string
   let projectId: string
+
+  afterEach(() => {
+    cacheService.clear()
+  })
 
   beforeAll(async () => {
     const response = await request.post('/api/auth/register').send({

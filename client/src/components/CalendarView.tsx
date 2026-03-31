@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react'
-import { Task, TaskStatus, EnergyPattern } from '../types'
+import { Task, TaskStatus, EnergyPattern, TaskCategory } from '../types'
 import { Text, Button, Card, Stack } from '../design-system'
 import { apiClient } from '../services/api'
 import LowEnergyModeButton from './LowEnergyModeButton'
+import ScheduleExplanationTooltip from './ScheduleExplanationTooltip'
 
 type ViewMode = 'day' | 'week' | 'month'
 
@@ -33,6 +34,19 @@ const ENERGY_COLORS = {
   neutral: { bg: '#ffffff', border: '#e0e0e0', label: '' },
 }
 
+const CATEGORY_COLORS: Record<
+  TaskCategory,
+  { bg: string; text: string; border: string }
+> = {
+  work: { bg: '#e3f2fd', text: '#1565c0', border: '#1976d2' },
+  personal: { bg: '#f3e5f5', text: '#6a1b9a', border: '#7b1fa2' },
+  health: { bg: '#e8f5e9', text: '#2e7d32', border: '#388e3c' },
+  learning: { bg: '#fff3e0', text: '#e65100', border: '#f57c00' },
+  errands: { bg: '#fff8e1', text: '#f9a825', border: '#fbc02d' },
+  meetings: { bg: '#fce4ec', text: '#c2185b', border: '#d81b60' },
+  admin: { bg: '#eceff1', text: '#455a64', border: '#546e7a' },
+}
+
 const DEFAULT_ENERGY_PATTERN: EnergyPattern = {
   peak_hours: [9, 10, 11, 14, 15],
   low_hours: [13, 16, 17],
@@ -61,6 +75,11 @@ function getTaskComputedStatus(task: Task): TaskStatus {
 function getStatusColors(task: Task) {
   const computedStatus = getTaskComputedStatus(task)
   return STATUS_COLORS[computedStatus] || STATUS_COLORS.pending
+}
+
+function getCategoryColors(category?: TaskCategory) {
+  if (!category) return null
+  return CATEGORY_COLORS[category] || null
 }
 
 function isPeakHour(hour: number, energyPattern: EnergyPattern): boolean {
@@ -425,15 +444,17 @@ const CalendarView: React.FC = () => {
   const renderTaskCard = (task: Task, compact = false) => {
     const isDragging = dragState?.taskId === task.id
     const statusColors = getStatusColors(task)
+    const categoryColors = getCategoryColors(task.category)
     const isMissed = getTaskComputedStatus(task) === 'missed'
+    const isScheduled = !!task.due_date
 
     return (
       <div
-        draggable={!!task.due_date}
+        draggable={isScheduled}
         onDragStart={e => handleDragStart(task, e)}
         onDragEnd={handleDragEnd}
         style={{
-          cursor: task.due_date ? 'grab' : 'default',
+          cursor: isScheduled ? 'grab' : 'default',
           backgroundColor: statusColors.bg,
           borderLeft: `4px solid ${statusColors.border}`,
           padding: compact ? '2px 4px' : '8px',
@@ -445,7 +466,32 @@ const CalendarView: React.FC = () => {
         }}
       >
         {!compact && (
-          <div style={{ marginBottom: '4px' }}>{renderStatusBadge(task)}</div>
+          <div
+            style={{
+              marginBottom: '4px',
+              display: 'flex',
+              gap: '4px',
+              alignItems: 'center',
+            }}
+          >
+            {renderStatusBadge(task)}
+            {categoryColors && (
+              <span
+                style={{
+                  display: 'inline-block',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  backgroundColor: categoryColors.bg,
+                  color: categoryColors.text,
+                  border: `1px solid ${categoryColors.border}`,
+                }}
+              >
+                {task.category}
+              </span>
+            )}
+          </div>
         )}
         <Text
           variant={compact ? 'caption' : 'body'}
@@ -457,6 +503,19 @@ const CalendarView: React.FC = () => {
           <Text variant="caption" style={{ color: '#666', marginTop: '4px' }}>
             {task.duration_minutes} min
           </Text>
+        )}
+        {isScheduled && !compact && (
+          <div style={{ marginTop: '6px' }}>
+            <ScheduleExplanationTooltip
+              taskId={task.id}
+              onAccept={() => console.log('Accepted:', task.id)}
+              onReject={() => console.log('Resuggest:', task.id)}
+              onManualEdit={time => {
+                const newDate = new Date(time)
+                void performReschedule(task, newDate)
+              }}
+            />
+          </div>
         )}
         {isMissed && !compact && (
           <Button
@@ -671,62 +730,79 @@ const CalendarView: React.FC = () => {
   )
 
   const renderDayView = () => {
-    const hours = Array.from({ length: 24 }, (_, i) => i)
+    const halfHourSlots = Array.from({ length: 48 }, (_, i) => ({
+      hour: Math.floor(i / 2),
+      minute: (i % 2) * 30,
+      slotIndex: i,
+    }))
     const dayTasks = getTasksForDate(currentDate)
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {hours.map(hour => {
-          const hourTasks = dayTasks.filter(task => {
+        {halfHourSlots.map(slot => {
+          const slotTasks = dayTasks.filter(task => {
             if (!task.due_date) return false
             const taskDate = new Date(task.due_date)
-            return taskDate.getHours() === hour
+            const taskHour = taskDate.getHours()
+            const taskMinute = taskDate.getMinutes()
+            return (
+              taskHour === slot.hour &&
+              Math.floor(taskMinute / 30) === slot.minute / 30
+            )
           })
-          const energyColors = getEnergyColors(hour, energyPattern)
+          const energyColors = getEnergyColors(slot.hour, energyPattern)
+          const isHourStart = slot.minute === 0
 
           return (
             <div
-              key={hour}
+              key={slot.slotIndex}
               style={{
                 display: 'flex',
-                borderBottom: '1px solid #e0e0e0',
-                minHeight: '60px',
+                borderBottom: isHourStart
+                  ? '1px solid #e0e0e0'
+                  : '1px solid #f5f5f5',
+                minHeight: '40px',
                 backgroundColor: energyColors.bg,
                 position: 'relative',
               }}
               onDragOver={e => handleDragOver(currentDate, e)}
               onDrop={e => handleDrop(currentDate, e)}
             >
-              {renderEnergyIndicator(hour)}
+              {isHourStart && renderEnergyIndicator(slot.hour)}
               <div
                 style={{
                   width: '80px',
-                  padding: '8px',
-                  color: '#666',
-                  fontSize: '14px',
+                  padding: '4px 8px',
+                  color: isHourStart ? '#666' : '#999',
+                  fontSize: isHourStart ? '14px' : '12px',
                   flexShrink: 0,
                 }}
               >
-                {hour.toString().padStart(2, '0')}:00
+                {isHourStart
+                  ? `${slot.hour.toString().padStart(2, '0')}:00`
+                  : `${slot.hour.toString().padStart(2, '0')}:30`}
               </div>
               <div
                 style={{
                   flex: 1,
-                  padding: '8px',
+                  padding: '4px 8px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '4px',
                   borderLeft:
-                    energyColors.border !== '#e0e0e0'
+                    energyColors.border !== '#e0e0e0' && isHourStart
                       ? `2px solid ${energyColors.border}`
                       : 'none',
                 }}
               >
-                {hourTasks.length > 0 ? (
-                  hourTasks.map(task => renderTaskCard(task))
+                {slotTasks.length > 0 ? (
+                  slotTasks.map(task => renderTaskCard(task))
                 ) : (
-                  <Text variant="caption" style={{ color: '#ccc' }}>
-                    Free time
+                  <Text
+                    variant="caption"
+                    style={{ color: '#ccc', fontSize: '11px' }}
+                  >
+                    {isHourStart ? 'Free time' : ''}
                   </Text>
                 )}
               </div>

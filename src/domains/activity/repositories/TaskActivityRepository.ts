@@ -6,7 +6,7 @@ export interface TaskActivity {
   user_id: string | null
   workspace_id: string
   action_type: string
-  changes: any
+  changes: unknown
   created_at: Date
   username?: string
   email?: string
@@ -46,7 +46,7 @@ class TaskActivityRepository {
       LEFT JOIN tasks t ON ta.task_id = t.id
       WHERE ta.workspace_id = $1
     `
-    const params: any[] = [workspaceId]
+    const params: (string | number)[] = [workspaceId]
     let paramIndex = 2
 
     if (filters.action_type) {

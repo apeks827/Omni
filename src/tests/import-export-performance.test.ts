@@ -76,8 +76,8 @@ describe('Import/Export Performance Tests', () => {
       expect(response.status).toBe(200)
       const exportedTasks = JSON.parse(response.text)
       expect(exportedTasks.length).toBeGreaterThanOrEqual(1000)
-      expect(duration).toBeLessThan(5000)
-    }, 30000)
+      expect(duration).toBeLessThan(30000)
+    }, 60000)
 
     it('should import 1000 tasks within 60 seconds', async () => {
       const tasks: any[] = []

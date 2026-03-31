@@ -16,4 +16,7 @@ export interface Task {
   completed_at?: Date
   created_at: Date
   updated_at: Date
+  preferred_device?: string[]
+  preferred_time_of_day?: string[]
+  context_tags?: string[]
 }

@@ -120,4 +120,59 @@ router.get(
   }
 )
 
+router.post('/me/level', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId as string
+    const { energyLevel } = req.body
+
+    if (!energyLevel || !['low', 'normal', 'high'].includes(energyLevel)) {
+      return res.status(400).json({
+        error: 'Invalid energy level. Must be: low, normal, or high',
+      })
+    }
+
+    const result = await energyService.setEnergyLevel(userId, energyLevel)
+    res.json(result)
+  } catch (error) {
+    const { status, body } = handleError(error, 'Failed to set energy level')
+    res.status(status).json(body)
+  }
+})
+
+router.get('/me/level', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId as string
+    const result = await energyService.getEnergyLevel(userId)
+
+    res.json({
+      energyLevel: result?.energyLevel || null,
+      date: result?.date || new Date().toISOString().split('T')[0],
+      isSet: !!result,
+    })
+  } catch (error) {
+    const { status, body } = handleError(error, 'Failed to fetch energy level')
+    res.status(status).json(body)
+  }
+})
+
+router.get('/me/suggested-tasks', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId as string
+    const workspaceId = req.workspaceId
+
+    if (!workspaceId) {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const result = await energyService.getSuggestedTasks(userId, workspaceId)
+    res.json(result)
+  } catch (error) {
+    const { status, body } = handleError(
+      error,
+      'Failed to fetch suggested tasks'
+    )
+    res.status(status).json(body)
+  }
+})
+
 export default router

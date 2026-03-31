@@ -16,7 +16,9 @@ class EmailService {
     const emailPass = process.env.EMAIL_PASS
 
     if (!emailHost || !emailUser || !emailPass) {
-      console.warn('Email service not configured. Email notifications disabled.')
+      console.warn(
+        'Email service not configured. Email notifications disabled.'
+      )
       return
     }
 
@@ -74,6 +76,7 @@ class EmailService {
       deadline_approaching: '[Deadline Approaching]',
       task_completed: '[Task Completed]',
       mentioned_in_comment: '[Mentioned]',
+      task_rescheduled: '[Task Rescheduled]',
     }
     return `${prefixes[type]} ${title}`
   }

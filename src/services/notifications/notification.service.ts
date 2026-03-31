@@ -14,6 +14,7 @@ const ALL_NOTIFICATION_TYPES: NotificationType[] = [
   'deadline_approaching',
   'task_completed',
   'mentioned_in_comment',
+  'task_rescheduled',
 ]
 
 export class NotificationService {

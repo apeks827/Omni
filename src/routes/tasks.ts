@@ -16,38 +16,113 @@ import prioritizationService from '../services/prioritization/prioritization.ser
 import { handleError, AppError, ErrorCodes } from '../utils/errors.js'
 import { userRateLimit } from '../middleware/rateLimit.js'
 import { createAIClient } from '../services/ai/client.js'
+import { cacheMiddleware, invalidateCache } from '../middleware/cache.js'
 
 const router = Router()
 
 router.use(authenticateToken)
 
-router.get('/', async (req: AuthRequest, res: Response) => {
-  try {
-    const workspaceId = req.workspaceId as string
-    const { status, priority, project_id, label_id, page, limit } = req.query
+router.get(
+  '/',
+  cacheMiddleware({ ttl: 30 }),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const workspaceId = req.workspaceId as string
+      const {
+        status,
+        priority,
+        project_id,
+        label_id,
+        page,
+        limit,
+        context_device,
+        context_time_of_day,
+      } = req.query
 
-    const statusStr = typeof status === 'string' ? status : undefined
-    const priorityStr = typeof priority === 'string' ? priority : undefined
-    const projectIdStr = typeof project_id === 'string' ? project_id : undefined
-    const labelIdStr = typeof label_id === 'string' ? label_id : undefined
-    const pageNum = typeof page === 'string' ? parseInt(page, 10) : undefined
-    const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : undefined
+      const statusStr = typeof status === 'string' ? status : undefined
+      const priorityStr = typeof priority === 'string' ? priority : undefined
+      const projectIdStr =
+        typeof project_id === 'string' ? project_id : undefined
+      const labelIdStr = typeof label_id === 'string' ? label_id : undefined
+      const pageNum = typeof page === 'string' ? parseInt(page, 10) : undefined
+      const limitNum =
+        typeof limit === 'string' ? parseInt(limit, 10) : undefined
+      const contextDeviceStr =
+        typeof context_device === 'string' ? context_device : undefined
+      const contextTimeOfDayStr =
+        typeof context_time_of_day === 'string'
+          ? context_time_of_day
+          : undefined
 
-    const result = await taskService.listTasks(workspaceId, {
-      status: statusStr,
-      priority: priorityStr,
-      project_id: projectIdStr,
-      label_id: labelIdStr,
-      page: pageNum,
-      limit: limitNum,
-    })
+      const result = await taskService.listTasks(workspaceId, {
+        status: statusStr,
+        priority: priorityStr,
+        project_id: projectIdStr,
+        label_id: labelIdStr,
+        page: pageNum,
+        limit: limitNum,
+        context_device: contextDeviceStr,
+        context_time_of_day: contextTimeOfDayStr,
+      })
 
-    res.json(result)
-  } catch (error) {
-    const { status, body } = handleError(error, 'Failed to fetch tasks')
-    res.status(status).json(body)
+      res.json(result)
+    } catch (error) {
+      const { status, body } = handleError(error, 'Failed to fetch tasks')
+      res.status(status).json(body)
+    }
   }
-})
+)
+
+router.get(
+  '/context-aware',
+  cacheMiddleware({ ttl: 30 }),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const workspaceId = req.workspaceId as string
+      const {
+        device,
+        time_of_day,
+        status,
+        priority,
+        project_id,
+        label_id,
+        page,
+        limit,
+      } = req.query
+
+      const deviceStr = typeof device === 'string' ? device : undefined
+      const timeOfDayStr =
+        typeof time_of_day === 'string' ? time_of_day : undefined
+      const statusStr = typeof status === 'string' ? status : undefined
+      const priorityStr = typeof priority === 'string' ? priority : undefined
+      const projectIdStr =
+        typeof project_id === 'string' ? project_id : undefined
+      const labelIdStr = typeof label_id === 'string' ? label_id : undefined
+      const pageNum = typeof page === 'string' ? parseInt(page, 10) : undefined
+      const limitNum =
+        typeof limit === 'string' ? parseInt(limit, 10) : undefined
+
+      const result = await taskService.listTasks(workspaceId, {
+        status: statusStr,
+        priority: priorityStr,
+        project_id: projectIdStr,
+        label_id: labelIdStr,
+        page: pageNum,
+        limit: limitNum,
+        context_device: deviceStr,
+        context_time_of_day: timeOfDayStr,
+      })
+
+      res.json(result)
+    } catch (error) {
+      const { status, body } = handleError(
+        error,
+        'Failed to fetch context-aware tasks'
+      )
+      res.status(status).json(body)
+    }
+  }
+)
 
 const bulkRateLimit = userRateLimit({
   windowMs: 60000,
@@ -141,6 +216,7 @@ router.post(
 router.get(
   '/:id',
   validateParams(uuidParamSchema),
+  cacheMiddleware({ ttl: 60 }),
   async (req: AuthRequest, res: Response) => {
     try {
       const id = req.params.id as string
@@ -253,6 +329,9 @@ router.post(
         assignee_id,
         due_date,
         label_ids,
+        preferred_device,
+        preferred_time_of_day,
+        context_tags,
       } = req.body
       const userId = req.userId
       const workspaceId = req.workspaceId
@@ -268,7 +347,12 @@ router.post(
         workspace_id: workspaceId as string,
         due_date,
         label_ids,
+        preferred_device,
+        preferred_time_of_day,
+        context_tags,
       })
+
+      invalidateCache(`/api/tasks:.*:${workspaceId}`)
 
       res.status(201).json(task)
     } catch (error) {
@@ -295,6 +379,9 @@ router.put(
         assignee_id,
         due_date,
         label_ids,
+        preferred_device,
+        preferred_time_of_day,
+        context_tags,
       } = req.body
       const workspaceId = req.workspaceId as string
       const userId = req.userId as string
@@ -308,7 +395,13 @@ router.put(
         assignee_id,
         due_date,
         label_ids,
+        preferred_device,
+        preferred_time_of_day,
+        context_tags,
       })
+
+      invalidateCache(`/api/tasks:.*:${workspaceId}`)
+      invalidateCache(`/api/tasks/${id}:.*:${workspaceId}`)
 
       res.json(task)
     } catch (error) {
@@ -345,6 +438,10 @@ router.delete(
       const workspaceId = req.workspaceId as string
 
       await taskService.deleteTask(id, workspaceId)
+
+      invalidateCache(`/api/tasks:.*:${workspaceId}`)
+      invalidateCache(`/api/tasks/${id}:.*:${workspaceId}`)
+
       res.status(204).send()
     } catch (error) {
       const { status, body } = handleError(error, 'Failed to delete task')

@@ -27,6 +27,42 @@ class AnalyticsService {
     )
   }
 
+  async getByTask(
+    workspaceId: string,
+    userId: string,
+    taskId: string | undefined,
+    startDate: Date,
+    endDate: Date
+  ) {
+    if (startDate > endDate) {
+      throw new AppError(
+        ErrorCodes.VALIDATION_ERROR,
+        'start_date must be before end_date',
+        {},
+        400
+      )
+    }
+
+    const entries = await timeEntryRepository.getByTask(
+      workspaceId,
+      userId,
+      taskId,
+      startDate,
+      endDate
+    )
+
+    const totalSeconds = entries.reduce(
+      (sum, entry) => sum + entry.duration_seconds,
+      0
+    )
+
+    return {
+      total_seconds: totalSeconds,
+      total_entries: entries.length,
+      entries,
+    }
+  }
+
   async exportData(
     workspaceId: string,
     userId: string,

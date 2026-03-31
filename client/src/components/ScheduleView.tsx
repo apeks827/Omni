@@ -6,6 +6,8 @@ import { apiClient } from '../services/api'
 import TaskCard from './TaskCard'
 import EmptyState from './EmptyState'
 import LoadingState from './LoadingState'
+import EnergyModeSelector from './EnergyModeSelector'
+import EnergyIndicator from './EnergyIndicator'
 
 interface ScheduleViewProps {
   onTaskUpdate?: () => void
@@ -207,6 +209,16 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ onTaskUpdate }) => {
                 </Text>
               </div>
             </Stack>
+          </Stack>
+        </Card>
+
+        <Card padding="md">
+          <Stack direction="vertical" spacing="md">
+            <Stack direction="horizontal" justify="between" align="center">
+              <Text variant="h4">Energy Mode</Text>
+              <EnergyIndicator />
+            </Stack>
+            <EnergyModeSelector />
           </Stack>
         </Card>
 

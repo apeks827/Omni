@@ -72,6 +72,19 @@ class LabelRepository {
     )
     return result.rows.length > 0
   }
+
+  async validateLabelIds(
+    labelIds: string[],
+    workspaceId: string
+  ): Promise<boolean> {
+    if (labelIds.length === 0) return true
+    const placeholders = labelIds.map((_, i) => `$${i + 1}`).join(', ')
+    const result = await query(
+      `SELECT id FROM labels WHERE id IN (${placeholders}) AND workspace_id = $${labelIds.length + 1}`,
+      [...labelIds, workspaceId]
+    )
+    return result.rows.length === labelIds.length
+  }
 }
 
 export default new LabelRepository()

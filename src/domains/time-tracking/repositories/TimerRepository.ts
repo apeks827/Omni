@@ -15,7 +15,7 @@ class TimerRepository {
   ): Promise<TimerState | null> {
     const result = await pool.query(
       `SELECT * FROM timer_states 
-       WHERE user_id = $1 AND workspace_id = $2 AND status != 'stopped'
+       WHERE user_id = $1 AND workspace_id = $2 AND status IN ('running', 'paused')
        ORDER BY created_at DESC
        LIMIT 1`,
       [userId, workspaceId]
