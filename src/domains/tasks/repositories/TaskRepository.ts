@@ -274,6 +274,19 @@ class TaskRepository {
     return task
   }
 
+  async exists(
+    id: string
+  ): Promise<{ exists: boolean; workspaceId: string | null }> {
+    const result = await query(
+      'SELECT workspace_id FROM tasks WHERE id = $1 AND deleted_at IS NULL',
+      [id]
+    )
+    if (result.rows.length === 0) {
+      return { exists: false, workspaceId: null }
+    }
+    return { exists: true, workspaceId: result.rows[0].workspace_id }
+  }
+
   async create(data: CreateTaskData): Promise<Task> {
     const result = await query(
       `INSERT INTO tasks (title, description, status, priority, project_id, assignee_id, creator_id, workspace_id, due_date, preferred_device, preferred_time_of_day, context_tags) 

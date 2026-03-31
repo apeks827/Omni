@@ -1,4 +1,4 @@
-import { Task, DashboardData } from '../types'
+import { Task, DashboardData, User } from '../types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -329,6 +329,46 @@ class ApiClient {
 
   async getGoalTasks(goalId: string): Promise<any[]> {
     return this.request<any[]>(`/goals/${goalId}/tasks`)
+  }
+
+  async login(
+    email: string,
+    password: string
+  ): Promise<{ token: string; user: User }> {
+    const result = await this.request<{ token: string; user: User }>(
+      '/auth/login',
+      {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      }
+    )
+    this.setAuthToken(result.token)
+    return result
+  }
+
+  async register(
+    name: string,
+    email: string,
+    password: string
+  ): Promise<{ token: string; user: User }> {
+    const result = await this.request<{ token: string; user: User }>(
+      '/auth/register',
+      {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password }),
+      }
+    )
+    this.setAuthToken(result.token)
+    return result
+  }
+
+  async getCurrentUser(): Promise<User> {
+    const result = await this.request<{ user: User }>('/auth/me')
+    return result.user
+  }
+
+  logout(): void {
+    this.clearAuthToken()
   }
 
   setAuthToken(token: string): void {

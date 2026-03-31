@@ -76,6 +76,65 @@ if [ "$total_tracked" -gt 0 ]; then
 fi
 
 echo ""
+echo "## Stale Task Metrics"
+echo "---"
+
+in_progress=$(curl -s -H "Authorization: Bearer $PAPERCLIP_API_KEY" \
+	"$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/issues?status=in_progress&limit=200")
+
+in_progress_count=$(echo "$in_progress" | jq '. | length')
+echo "Tasks in progress: $in_progress_count"
+
+STALE_THRESHOLD=14400
+stale_count=0
+stale_l1=0
+stale_l2=0
+stale_l3=0
+
+echo "$in_progress" | jq -r '.[] | @json' | while IFS= read -r task; do
+	updated=$(echo "$task" | jq -r '.updatedAt')
+	priority=$(echo "$task" | jq -r '.priority // "medium"')
+	updated_epoch=$(date -d "$updated" +%s 2>/dev/null || echo "$now")
+	age_seconds=$((now - updated_epoch))
+
+	if [ $age_seconds -ge 43200 ]; then
+		stale_l3=$((stale_l3 + 1))
+		stale_count=$((stale_count + 1))
+	elif [ $age_seconds -ge 28800 ]; then
+		stale_l2=$((stale_l2 + 1))
+		stale_count=$((stale_count + 1))
+	elif [ $age_seconds -ge $STALE_THRESHOLD ]; then
+		stale_l1=$((stale_l1 + 1))
+		stale_count=$((stale_count + 1))
+	fi
+done
+
+echo "Stale tasks (>4h without update): $stale_count"
+echo "  L1 (4-8h): $stale_l1"
+echo "  L2 (8-12h): $stale_l2"
+echo "  L3 (>12h): $stale_l3"
+
+if [ $stale_count -gt 0 ]; then
+	echo ""
+	echo "### Stale Task Details"
+	echo "| Task | Age | Priority |"
+	echo "|------|-----|----------|"
+
+	echo "$in_progress" | jq -r '.[] | @json' | while IFS= read -r task; do
+		identifier=$(echo "$task" | jq -r '.identifier')
+		updated=$(echo "$task" | jq -r '.updatedAt')
+		priority=$(echo "$task" | jq -r '.priority // "medium"')
+		updated_epoch=$(date -d "$updated" +%s 2>/dev/null || echo "$now")
+		age_seconds=$((now - updated_epoch))
+		age_hours=$((age_seconds / 3600))
+
+		if [ $age_seconds -ge $STALE_THRESHOLD ]; then
+			echo "| $identifier | ${age_hours}h | $priority |"
+		fi
+	done
+fi
+
+echo ""
 echo "## Blocker Metrics"
 echo "---"
 

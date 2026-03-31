@@ -12,6 +12,7 @@ import {
   isPasswordResetRateLimited,
   verifyToken,
 } from '../../../utils/security.js'
+import emailService from '../../../services/notifications/email.service.js'
 
 interface RegisterData {
   email: string
@@ -188,6 +189,20 @@ class AuthService {
         tokenHash,
         expiresAt.toISOString()
       )
+
+      const userDetails = await authRepository.findUserById(userResult.id)
+      if (userDetails) {
+        try {
+          await emailService.sendPasswordResetEmail(
+            email,
+            userDetails.name,
+            token
+          )
+        } catch (emailError) {
+          console.error('Failed to send password reset email:', emailError)
+        }
+      }
+
       await logAuditEvent(
         'password_reset_requested',
         userResult.id,

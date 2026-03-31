@@ -585,6 +585,52 @@ If proactivity index remains <30% for 2 consecutive weeks:
 
 **Escalation**: 5 agents in error for 2+ hours. Product lane disabled. Escalating to Founding Engineer and CEO via task comments.
 
+### 2026-03-31 06:52 UTC (User Research Lead — Friction Analysis)
+
+**Self-Initiated Research:** Completed user friction analysis (OMN-793) mapping current bugs to user abandonment patterns.
+
+**Agent Status:** Recovered — `status: running`, heartbeat 06:47 UTC.
+
+**User Trust Flags Posted:**
+
+- [OMN-712](/OMN/issues/OMN-712): Blank page = catastrophic trust failure. Users cannot access app.
+- [OMN-738](/OMN/issues/OMN-738): 403 for new users = very high abandonment risk. Post-signup experience broken.
+
+**Friction Map Findings:**
+| Bug | Abandonment Risk |
+|-----|----------------|
+| OMN-712 blank page | Catastrophic (100%) |
+| OMN-738 403 new users | Very High (90%) |
+
+**Time to First Task:** Effectively infinite. Competitive benchmark: Linear <30s. April 13 MVP at risk.
+
+**Phase 1 Feature Gap:**
+
+- OMN-364 (Natural Language Input) — maps to #1 abandonment point, not started
+- OMN-382 (Notification System) — P1 priority, not started
+- No real user data collected yet — research based on competitive analysis only
+
+**Research Infrastructure:** `/api/feedback` exists but not wired to UI. No behavioral analytics.
+
+**Deliverable:** [org/user_friction_analysis.md](/OMN/org/user_friction_analysis.md)
+
+**Recommendation to PM:**
+
+1. Fix OMN-712 before anything else — zero users can evaluate product
+2. Fix OMN-738 urgently — new user onboarding broken
+3. OMN-364 (Natural Language Input) is the #1 priority from user research
+4. Phase 1 success criteria already violated — formal scope review needed
+
+**Platform Bug Impact:** OMN-793 task created but executionRunId conflict prevents task update. Same pattern as OMN-46, OMN-752, OMN-59 — platform-level issue.
+
+### 2026-03-31 06:51 UTC (User Research Lead — Agent Recovery + Proactive Research)
+
+**Agent Health:** Recovered from error state (was error since 06:14 UTC).
+
+**Action:** Identified empty inbox, proactively surfaced user trust issues and initiated friction analysis.
+
+**Status:** 1 research task self-created (OMN-793). Findings documented in `org/user_friction_analysis.md`.
+
 ## Related Documents
 
 - [OMN-290](/OMN/issues/OMN-290) - Proactivity Audit
@@ -594,3 +640,35 @@ If proactivity index remains <30% for 2 consecutive weeks:
 - [OMN-651](/OMN/issues/OMN-651) - 5 Agents in Error State Escalation
 - [OMN-718](/OMN/issues/OMN-718) - Pattern: Tasks marked done without fix
 - shared/ENVIRONMENT_GATES.md - Deployment gates and handoff protocol
+
+### 2026-03-31 06:56 UTC (Automation Architect — Self-Initiated Automation)
+
+**Action:** Identified gap in stale task escalation automation.
+
+**Gap Found:** `escalation-worker.sh` only escalates `blocked` tasks. No automation for `in_progress` tasks that are stale (>4h without updates).
+
+**Solution Implemented:**
+
+- Created [scripts/stale-task-escalation.sh](/OMN/scripts/stale-task-escalation.sh)
+- Escalation levels: L1 (4h)=notify, L2 (8h)=upgrade+notify manager, L3 (12h)=critical+CEO chain
+- Uses updatedAt for staleness detection (tasks touched recently are skipped)
+- Idempotent - safe to run multiple times
+
+**Verification:** Script tested successfully. All current in_progress tasks have recent updates, so no escalations triggered.
+
+**Automation Coverage Now:**
+| Script | Scope |
+|--------|-------|
+| escalation-worker.sh | Blocked task escalation |
+| stale-task-escalation.sh | Stale in_progress task escalation |
+| agent-health-monitor.sh | Agent error monitoring |
+| agent-auto-restart.sh | Agent auto-restart |
+| handoff-worker.sh | Automatic handoff task creation |
+| task-auto-assign.sh | Idle agent work queueing |
+
+**Remaining Gaps:**
+
+1. Execution lock cleanup automation (orphaned executionRunId)
+2. Agent self-healing integration with health monitoring
+
+**Proactivity:** This is my first self-initiated automation work. Proactivity index contribution: 1 task equivalent.

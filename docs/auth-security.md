@@ -171,17 +171,12 @@ Additional protection against distributed attacks:
 
 - 50 requests per IP per minute across all endpoints
 - 10 login attempts per IP per hour
-- Implemented via middleware using Redis for distributed rate limiting
+- Implemented via `quotaMiddleware` using in-memory store. Redis for distributed rate limiting is planned as a future enhancement (see [OMN-655](/OMN/issues/OMN-655)).
 
 ```typescript
-import rateLimit from 'express-rate-limit'
-import RedisStore from 'rate-limit-redis'
+import { quotaMiddleware } from '../middleware/rateLimitAdvanced.js'
 
-const loginLimiter = rateLimit({
-  store: new RedisStore({
-    client: redisClient,
-    prefix: 'rl:login:',
-  }),
+const loginLimiter = quotaMiddleware({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10,
   message: 'Too many login attempts from this IP',

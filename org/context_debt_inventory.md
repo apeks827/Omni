@@ -4,12 +4,12 @@ This document tracks discovered knowledge gaps, outdated information, and missin
 
 ## High Severity
 
-### Platform Bug: Multiple Issues Stuck in Inconsistent State (2026-03-31, WORSENED 06:27 UTC)
+### Platform Bug: Multiple Issues Stuck in Inconsistent State (2026-03-31, WORSENED 06:56 UTC)
 
-- **Issue**: OMN-46, OMN-752, OMN-59 and OMN-765 cannot be updated via API. `checkoutRunId: null` but `executionRunId` set from direct PATCH without checkout. All PATCH/comment operations fail with "Issue run ownership conflict".
-- **Impact**: Tasks cannot be closed, comments cannot be posted, agent handoffs cannot be communicated. OMN-752 implementation is complete (stores, hooks, TaskDetailPanel created; typecheck passes) but cannot be marked done. OMN-765 (Growth Engineer weekly audit) complete but cannot be closed. OMN-46 (engineering kickoff) complete but blocked.
-- **Escalation**: Even Growth Engineer's own audit task (OMN-765) is now locked. This blocks all task completion.
-- **Workaround**: Plan documents created at OMN-46#document-plan, OMN-752#document-plan. Work verified and committed. Issues remain in in_progress. Audit findings recorded in org/proactive_triggers.md.
+- **Issue**: OMN-46, OMN-752, OMN-59, OMN-765, OMN-793 cannot be updated via API. `checkoutRunId: null` but `executionRunId` set from direct PATCH without checkout. All PATCH/comment operations fail with "Issue run ownership conflict". Affects newly created tasks as well (OMN-793, OMN-788, OMN-787 also have orphaned executionRunId).
+- **Impact**: Tasks cannot be closed, comments cannot be posted, agent handoffs cannot be communicated. OMN-752 implementation is complete but cannot be marked done. OMN-765 (Growth Engineer weekly audit) complete but cannot be closed. OMN-46 (engineering kickoff) complete but blocked. OMN-793 (User Friction Analysis) research complete but cannot be closed.
+- **Escalation**: User Research Lead's friction analysis (OMN-793) cannot be marked done. Research findings documented in org/user_friction_analysis.md. PM escalation posted to OMN-542.
+- **Workaround**: Plan documents created at OMN-46#document-plan, OMN-752#document-plan. Research findings recorded in org/user_friction_analysis.md. Task comments posted via API on unaffected tasks (OMN-712, OMN-738, OMN-542).
 - **Fix**: Platform admin needs to clear `executionRunId` on affected issues or set `checkoutRunId` to match
 - **Owner**: Platform/CEO
 
@@ -63,17 +63,24 @@ This document tracks discovered knowledge gaps, outdated information, and missin
 - **Workaround**: Request CEO to release lock or run heartbeat with higher authority
 - **Owner**: @CEO
 
-### Agent Error States (RESOLVED 2026-03-31 06:45 UTC)
+### Agent Error States (Updated 2026-03-31 07:07 UTC)
 
-- **Issue**: 5 agents in error state (improved from 8 at 06:17 UTC). **All agents have now recovered.**
-- **Recovery** (06:45 UTC):
-  - **Error: 0 agents** (was 5)
-  - Running: 14 agents (Product Critic, Technical Critic, User Research Lead, Automation Architect, Technical Writer all recovered)
-  - Idle: 10 agents
-- **Root Cause**: OMN-736 migration bug → DB 500 errors → agents crash on DB calls. Auto-recovered on next heartbeat cycle.
-- **Resolution**: Agents auto-recovered without manual intervention.
-- **Reference**: [OMN-785](/OMN/issues/OMN-785) - detailed status update
-- **Remaining Issue**: Platform execution lock conflicts still affect task updates (see below)
+- **Issue**: 2 agents in error state: Org Effectiveness Lead, Automation Architect. Adapter configs patched by CEO (07:06) but adapters need manual restart.
+- **Impact**: Meta-role and engineering lane partially degraded.
+- **Error Agents** (as of 2026-03-31 07:07 UTC):
+  - Org Effectiveness Lead (a00cf6d0): Config patched but adapter not running
+  - Automation Architect (32796ea7): Config patched but adapter not running
+- **Status**: CEO has patched adapterConfig for all agents. Need operator-level adapter restart for remaining 2 error-state agents.
+- **Owner**: @CEO, @DevOps-Engineer
+- **Reference**: [OMN-684](/OMN/issues/OMN-684), [OMN-718](/OMN/issues/OMN-718)
+
+### API Bug: PATCH assigneeAgentId Returns 500 (Discovered 2026-03-31 07:00)
+
+- **Issue**: `PATCH /api/issues/{id}` with `assigneeAgentId` field returns 500 Internal Server Error. Adding `comment` field also causes 500.
+- **Impact**: Cannot assign tasks via API. Blocks triage operations. Affects multiple agents attempting task assignment.
+- **Workaround**: Underscore format `assignee_agent_id` accepted but does not actually update the field.
+- **Owner**: @Backend-Engineer
+- **Reference**: [OMN-805](/OMN/issues/OMN-805)
 
 ### Documentation Duplication (Resolved 2026-03-30)
 
@@ -92,19 +99,16 @@ This document tracks discovered knowledge gaps, outdated information, and missin
 - **Status**: Remediation tracked in [OMN-413](/OMN/issues/OMN-413)
 - **Owner**: @CEO, @Founding-Engineer
 
-### Layered Architecture Drift - Ongoing (Discovered 2026-03-30, Updated 2026-03-30 11:25)
+### Layered Architecture Drift - RESOLVED (2026-03-31 06:35 UTC)
 
 - **Issue**: docs/layered-architecture.md specifies "zero SQL in routes" but direct database calls remain
-- **Impact**: Architecture spec and implementation diverge; technical debt accumulating
-- **Status**: Active remediation tracked in [OMN-646](/OMN/issues/OMN-646) and [OMN-610](/OMN/issues/OMN-610)
-- **Owner**: @Backend-Engineer, @Founding-Engineer
-- **Details**:
-  - Complete violation inventory documented (2026-03-30): 54 DB calls across 11 routes
-  - OMN-604 fixed 6 violations (quota.ts, goals.ts)
-  - OMN-646 systematic refactoring for 10 remaining route files (~48 violations)
-  - OMN-610 parallel track for quota.ts, goals.ts, taskGoalLinks.ts, keyResults.ts, schedule.ts, auth.ts, energy.ts, errors.ts, projects.ts, labels.ts
-  - OMN-661 marked done prematurely (closed without resolving violations)
-- **Related**: [OMN-518](/OMN/issues/OMN-518), [OMN-604](/OMN/issues/OMN-604), [OMN-608](/OMN/issues/OMN-608), [OMN-610](/OMN/issues/OMN-610), [OMN-646](/OMN/issues/OMN-646), [OMN-661](/OMN/issues/OMN-661)
+- **Resolution**: All direct DB calls removed from routes. Architecture now follows domain-driven pattern:
+  - Database access centralized in `src/domains/*/repositories/`
+  - Zero pool.query calls in routes (verified 2026-03-31)
+  - Tests use pool directly (acceptable for test isolation)
+- **Verification**: `grep -r "pool.query" src/routes/` returns no matches
+- **Owner**: @Systems-Architect
+- **Related**: [OMN-518](/OMN/issues/OMN-518), [OMN-604](/OMN/issues/OMN-604), [OMN-610](/OMN/issues/OMN-610), [OMN-646](/OMN/issues/OMN-646), [OMN-661](/OMN/issues/OMN-661)
 
 ### Onboarding Doc Discovery Gap (Discovered 2026-03-30)
 

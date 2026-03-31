@@ -388,7 +388,7 @@ Omni becomes the "personal COO" that transforms chaotic incoming tasks, habits, 
 
 - **NFR-4.1**: Horizontal scaling for API servers
 - **NFR-4.2**: Database read replicas for query performance
-- **NFR-4.3**: Distributed caching with Redis cluster
+- **NFR-4.3**: Distributed caching — Redis planned as future enhancement ([OMN-655](/OMN/issues/OMN-655)); in-memory caching in use
 - **NFR-4.4**: Auto-scaling based on demand
 - **NFR-4.5**: Microservices architecture for independent scaling
 

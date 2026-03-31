@@ -19,6 +19,8 @@ import MobileNav from './components/MobileNav'
 import PWAInstallBanner from './components/PWAInstallBanner'
 import { OnboardingFlow } from './components/Onboarding'
 import { useOnboarding } from './hooks/useOnboarding'
+import { useAuth } from './hooks/useAuth'
+import AuthScreen from './components/AuthScreen'
 import NotificationBell from './components/NotificationBell'
 import NotificationPreferences from './pages/NotificationPreferences'
 import QuickCaptureWidget from './components/QuickCaptureWidget'
@@ -33,10 +35,32 @@ const AppContent: React.FC = () => {
   const { view, showFeedbackWidget, setShowFeedbackWidget, setView } =
     useViewStore()
   const [isMobile, setIsMobile] = useState(false)
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
   const { showOnboarding, completeOnboarding, skipOnboarding } = useOnboarding()
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false)
   const [showShortcutsSettings, setShowShortcutsSettings] = useState(false)
   const navigate = useNavigate()
+
+  if (authLoading) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Text variant="body" color="gray600">
+          Loading...
+        </Text>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <AuthScreen onAuthenticated={() => {}} />
+  }
 
   useEffect(() => {
     shortcutManager.initialize()

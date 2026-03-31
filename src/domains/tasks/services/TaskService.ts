@@ -25,8 +25,9 @@ class TaskService {
   }
 
   async getTask(id: string, workspaceId: string): Promise<Task> {
-    const task = await taskRepository.findById(id, workspaceId)
-    if (!task) {
+    const { exists, workspaceId: taskWorkspace } =
+      await taskRepository.exists(id)
+    if (!exists) {
       throw new AppError(
         ErrorCodes.TASK_NOT_FOUND,
         'Task not found',
@@ -34,7 +35,16 @@ class TaskService {
         404
       )
     }
-    return task
+    if (taskWorkspace !== workspaceId) {
+      throw new AppError(
+        ErrorCodes.FORBIDDEN,
+        'Access denied to this task',
+        { task_id: id },
+        403
+      )
+    }
+    const task = await taskRepository.findById(id, workspaceId)
+    return task!
   }
 
   async createTask(data: CreateTaskData): Promise<Task> {
@@ -159,6 +169,24 @@ class TaskService {
     userId: string,
     data: UpdateTaskData
   ): Promise<Task> {
+    const { exists, workspaceId: taskWorkspace } =
+      await taskRepository.exists(id)
+    if (!exists) {
+      throw new AppError(
+        ErrorCodes.TASK_NOT_FOUND,
+        'Task not found',
+        { task_id: id },
+        404
+      )
+    }
+    if (taskWorkspace !== workspaceId) {
+      throw new AppError(
+        ErrorCodes.FORBIDDEN,
+        'Access denied to this task',
+        { task_id: id },
+        403
+      )
+    }
     const existingTask = await taskRepository.findById(id, workspaceId)
     if (!existingTask) {
       throw new AppError(
@@ -255,6 +283,24 @@ class TaskService {
   }
 
   async deleteTask(id: string, workspaceId: string): Promise<void> {
+    const { exists, workspaceId: taskWorkspace } =
+      await taskRepository.exists(id)
+    if (!exists) {
+      throw new AppError(
+        ErrorCodes.TASK_NOT_FOUND,
+        'Task not found',
+        { task_id: id },
+        404
+      )
+    }
+    if (taskWorkspace !== workspaceId) {
+      throw new AppError(
+        ErrorCodes.FORBIDDEN,
+        'Access denied to this task',
+        { task_id: id },
+        403
+      )
+    }
     const deleted = await taskRepository.delete(id, workspaceId)
     if (!deleted) {
       throw new AppError(

@@ -28,7 +28,7 @@ if [ -z "$FEATURE_BRANCH" ]; then
 	FEATURE_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 fi
 
-if [ ! "$FEATURE_BRANCH" =~ ^feat/.* ]; then
+if [[ ! "$FEATURE_BRANCH" =~ ^feat/.* ]]; then
 	fail "This script is for feature branches only. Current branch: $FEATURE_BRANCH"
 fi
 

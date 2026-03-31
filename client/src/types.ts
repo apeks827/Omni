@@ -1,3 +1,12 @@
+export interface User {
+  id: string
+  email: string
+  name: string
+  workspace_id: string
+  created_at: string
+  updated_at: string
+}
+
 export type TaskStatus =
   | 'pending'
   | 'in_progress'

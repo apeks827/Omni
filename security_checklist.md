@@ -1,13 +1,17 @@
 # Security Checklist for Omni Task Manager
 
+**Last Updated:** 2026-03-31 (Auth Audit OMN-633)
+
 ## Authentication & Authorization
 
-- [ ] All API endpoints require authentication
-- [ ] JWT tokens are properly validated with correct secret
-- [ ] Token expiration is enforced (24-hour default)
-- [ ] Passwords are hashed using bcrypt with appropriate salt rounds
-- [ ] User permissions are properly enforced (workspace isolation)
-- [ ] Route-specific authorization checks implemented where needed
+- [x] All API endpoints require authentication
+- [x] JWT tokens are properly validated with correct secret
+- [x] Token expiration is enforced (30-day default, 30-day inactivity timeout)
+- [x] Passwords are hashed using bcrypt with appropriate salt rounds (12 rounds)
+- [x] User permissions are properly enforced (workspace isolation)
+- [x] Route-specific authorization checks implemented where needed
+- [x] Account lockout after 5 failed attempts (15 min lockout)
+- [x] Password reset tokens are cryptographically secure (32 bytes, hashed)
 
 ## Data Protection
 
