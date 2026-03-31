@@ -143,7 +143,7 @@ export function useTaskContext(task: Task | null): {
     task.preferred_time_of_day.includes(context.time.timeOfDay)
 
   const matchedTags =
-    task.context_tags?.filter(tag => (context ? true : false)) || []
+    task.context_tags?.filter(() => (context ? true : false)) || []
 
   const tagMatch = matchedTags.length > 0
 
