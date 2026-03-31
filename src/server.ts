@@ -41,6 +41,7 @@ import scheduleRouter from './routes/schedule.js'
 import rescheduleRouter from './routes/reschedule.js'
 import classifierRouter from './routes/classifier.js'
 import suggestionRouter from './services/suggestions/routes.js'
+import feedbackRouter from './domains/feedback/routes/FeedbackRouter.js'
 import { rateLimitMiddleware } from './middleware/rateLimitAdvanced.js'
 import correlationMiddleware from './middleware/correlation.js'
 import { responseTimeMiddleware } from './middleware/responseTime.js'
@@ -179,6 +180,7 @@ app.use('/api/quota', quotaRouter)
 app.use('/api/users', energyRouter)
 app.use('/api/classifier', classifierRouter)
 app.use('/api/tasks/suggestions', suggestionRouter)
+app.use('/api/feedback', feedbackRouter)
 
 const clientDistPath = path.join(__dirname, '..', 'client', 'dist')
 app.use(express.static(clientDistPath))

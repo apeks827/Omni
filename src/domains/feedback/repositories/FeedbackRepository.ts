@@ -79,7 +79,7 @@ export class FeedbackRepository {
     workspaceId: string
   ): Promise<UserFeedback | null> {
     const result = await pool.query(
-      `SELECT * FROM user_feedback WHERE id = $1 AND workspace_id = $2`,
+      'SELECT * FROM user_feedback WHERE id = $1 AND workspace_id = $2',
       [id, workspaceId]
     )
     if (result.rows.length === 0) return null
