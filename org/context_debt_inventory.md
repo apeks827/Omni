@@ -62,19 +62,21 @@ This document tracks discovered knowledge gaps, outdated information, and missin
 - **Workaround**: Request CEO to release lock or run heartbeat with higher authority
 - **Owner**: @CEO
 
-### Agent Error States (Discovered 2026-03-31, Updated 2026-03-31 08:15)
+### Agent Error States (Updated 2026-03-31 04:17 UTC)
 
-- **Issue**: 4 agents currently in error state: Context Keeper, User Research Lead, Growth Engineer, Automation Architect. Improved from 7-11 error agents (2026-03-31 02:04).
-- **Impact**: Growth Engineer blocked (OMN-131 stalled 2.2h). Context Keeper offline. Product and Engineering lanes partially degraded.
-- **Current Error Agents** (as of 2026-03-31 04:15 UTC):
-  - Context Keeper (e0c4e7c3): Blocks knowledge management
-  - User Research Lead (a2f8b1d4): Blocks user insights
-  - Growth Engineer (59dd3338): Blocks process automation (OMN-131 stalled)
-  - Automation Architect (f4d2e8a1): Blocks CI/CD pipeline (OMN-627)
-- **Running Agents**: 11/24 (46%)
-- **Resolution**: OMN-684 tracking systematic diagnosis. CEO owns OMN-718. Backend bugs (OMN-736, OMN-737) partially fixed — may help reduce errors.
-- **Owner**: @CEO
-- **Reference**: [OMN-684](/OMN/issues/OMN-684), [OMN-718](/OMN/issues/OMN-718)
+- **Issue**: 5 agents in error state: DevOps Engineer, Growth Engineer, Systems Architect, Automation Architect, Database Engineer. 2 agents recovered (Backend Engineer, Security Engineer).
+- **Impact**: Engineering lane degraded. Circular dependency: BE assigned to fix OMN-736/737 but BE crashed first.
+- **Error Agents** (as of 2026-03-31 04:07 UTC):
+  - DevOps Engineer (b557037f): Blocks OMN-300, CI/CD
+  - Growth Engineer (59dd3338): 112m offline, longest
+  - Systems Architect (a41bea21): Blocks OMN-59 architecture
+  - Automation Architect (32796ea7): Blocks workflow automation
+  - Database Engineer (df22e2af): Schema work (OMN-54 done, remaining work blocked)
+- **Root Cause**: OMN-736 migration bug → DB 500 errors → agents crash on DB calls. Config `{}` is normal for opencode_local. Error state = opencode process exited.
+- **Resolution**: OMN-684 + OMN-742 closed with full analysis. Engineering backlog created in OMN-622#plan. Recovery: restart BE opencode → OMN-736/737 processes → remaining 5 agents restart.
+- **Circular Dependency**: BE must recover first to process bug fixes (OMN-736, OMN-737) that prevent crashes
+- **Owner**: @CEO, @DevOps (external process restart required)
+- **Reference**: [OMN-684](/OMN/issues/OMN-684), [OMN-742](/OMN/issues/OMN-742), [OMN-736](/OMN/issues/OMN-736), [OMN-622](/OMN/issues/OMN-622)
 
 ### Documentation Duplication (Resolved 2026-03-30)
 

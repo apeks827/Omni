@@ -80,7 +80,7 @@ class RescheduleTrigger {
             )
 
             await query(
-              "UPDATE tasks SET status = 'scheduled', due_date = $1, updated_at = NOW() WHERE id = $2",
+              'UPDATE tasks SET status = \'scheduled\', due_date = $1, updated_at = NOW() WHERE id = $2',
               [scheduleResult.suggested_slot.start_time, task.id]
             )
 

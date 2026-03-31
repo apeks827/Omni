@@ -231,8 +231,8 @@ class TimeEntryRepository {
         groupByClause = 'DATE(start_time)'
         break
       case 'week':
-        selectClause = "DATE_TRUNC('week', start_time) as week"
-        groupByClause = "DATE_TRUNC('week', start_time)"
+        selectClause = 'DATE_TRUNC(\'week\', start_time) as week'
+        groupByClause = 'DATE_TRUNC(\'week\', start_time)'
         break
       case 'project':
         selectClause = 't.project_id'
