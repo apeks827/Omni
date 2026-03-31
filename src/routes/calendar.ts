@@ -1,6 +1,8 @@
 import { Router, Response } from 'express'
 import { authenticateToken, AuthRequest } from '../middleware/auth.js'
 import calendarService from '../domains/calendar/services/CalendarService.js'
+import calendarRepository from '../domains/calendar/repositories/CalendarRepository.js'
+import rebalancerService from '../services/calendar/rebalancer.js'
 import { handleError } from '../utils/errors.js'
 
 const router = Router()
@@ -107,5 +109,54 @@ router.patch(
     }
   }
 )
+
+router.post('/reflow', async (req: AuthRequest, res: Response) => {
+  try {
+    const { task_id, new_start_time } = req.body
+    const userId = req.userId as string
+    const workspaceId = req.workspaceId as string
+
+    if (!task_id || !new_start_time) {
+      throw new Error('task_id and new_start_time are required')
+    }
+
+    const newDate = new Date(new_start_time)
+    const conflictExists = await calendarRepository.checkScheduleConflict(
+      workspaceId,
+      task_id,
+      newDate
+    )
+
+    if (conflictExists) {
+      throw new Error('Conflict: another task is scheduled at this time')
+    }
+
+    const bumped = await rebalancerService.bumpLowerPriorityTask(
+      task_id,
+      newDate,
+      userId,
+      workspaceId
+    )
+
+    await calendarRepository.updateTaskSchedule(task_id, newDate)
+
+    await rebalancerService.rebalanceSchedule({
+      userId,
+      workspaceId,
+      triggerTaskId: task_id,
+    })
+
+    res.json({
+      success: true,
+      task_id,
+      new_start_time,
+      rebalanced: true,
+      bumped,
+    })
+  } catch (error) {
+    const { status, body } = handleError(error, 'Failed to reflow schedule')
+    res.status(status).json(body)
+  }
+})
 
 export default router

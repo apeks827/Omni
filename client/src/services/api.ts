@@ -148,6 +148,25 @@ class ApiClient {
     })
   }
 
+  async reflowSchedule(
+    taskId: string,
+    newStartTime: Date
+  ): Promise<{
+    success: boolean
+    task_id: string
+    new_start_time: string
+    rebalanced: boolean
+    bumped: any[]
+  }> {
+    return this.request<any>('/calendar/reflow', {
+      method: 'POST',
+      body: JSON.stringify({
+        task_id: taskId,
+        new_start_time: newStartTime.toISOString(),
+      }),
+    })
+  }
+
   async toggleLowEnergyMode(enabled: boolean): Promise<void> {
     return this.request<void>('/users/me/preferences', {
       method: 'PATCH',
