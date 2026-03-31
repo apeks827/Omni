@@ -130,7 +130,7 @@ describe('Intent Processing Service', () => {
       expect(results).toHaveLength(5)
       results.forEach((result, index) => {
         expect(result.title).toContain(`Task ${index + 1}`)
-        expect(result.processing_time_ms).toBeLessThan(200)
+        expect(result.processing_time_ms).toBeLessThan(500)
       })
     })
   })

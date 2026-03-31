@@ -185,3 +185,4 @@ Track these KPIs to measure task quality:
 - [org/delegation-protocol.md](/OMN/org/delegation-protocol.md) - Delegation rules
 - [org/proactive_triggers.md](/OMN/org/proactive_triggers.md) - Self-initiation triggers
 - [org/file_handling_protocols.md](/OMN/org/file_handling_protocols.md) - File procedures
+- [org/procedures/verification-protocol.md](/OMN/org/procedures/verification-protocol.md) - Agent fix verification protocol
