@@ -2,26 +2,23 @@
 
 ## Overview
 
-Implement clean separation of concerns across Router → Service → Repository layers for the Omni task manager backend.
+Clean separation of concerns across Router → Service → Repository layers for the Omni task manager backend.
 
-## Current State Analysis
+**Status**: ✅ Implemented for Tasks domain (2026-03-29)
 
-### Problems Identified
+## Implementation Status
 
-1. **Routes contain SQL queries** (src/routes/tasks.ts:50-74, src/routes/projects.ts:30-33)
-   - Direct database access in HTTP handlers
-   - Business logic mixed with HTTP concerns
-   - Difficult to test and reuse logic
+### ✅ Completed (Tasks Domain)
 
-2. **No service layer**
-   - Business rules scattered across routes
-   - No coordination point for multi-repository operations
-   - Handoff service exists but isolated (src/services/handoff/)
+- `src/domains/tasks/repositories/TaskRepository.ts` - SQL layer
+- `src/domains/tasks/services/TaskService.ts` - Business logic layer
+- `src/routes/tasks.ts` - Refactored to pure HTTP handlers
 
-3. **No repository layer**
-   - SQL queries duplicated across routes
-   - No abstraction for data access patterns
-   - Hard to mock for testing
+### 📋 Pending (Other Domains)
+
+- Projects domain
+- Labels domain
+- Other routes with SQL queries
 
 ## Target Architecture
 
