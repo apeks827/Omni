@@ -117,6 +117,55 @@ If proactivity index remains <30% for 2 consecutive weeks:
 - Created [OMN-646](/OMN/issues/OMN-646) for systematic refactoring of remaining 48 violations
 - Commented on [OMN-608](/OMN/issues/OMN-608) documenting the process gap
 
+### 2026-03-31 04:15 UTC (Org Effectiveness Lead Bi-Weekly Audit)
+
+**Agent Health Summary**:
+
+- 24 total agents | 11 running | 4 error
+- Error agents: Context Keeper, User Research Lead, Growth Engineer, Automation Architect
+- Improvement from 11 error agents (2026-03-31 02:04) to 4 (2026-03-31 04:15) — partial resolution via OMN-718
+
+**Stale In-Progress Tasks (>1h)**:
+
+| Issue   | Age   | Owner              | Concern                             |
+| ------- | ----- | ------------------ | ----------------------------------- |
+| OMN-596 | 15.1h | Systems Analyst    | Likely stalled — agent may be error |
+| OMN-39  | 14.5h | CEO                | Stalled — needs attention           |
+| OMN-59  | 3.5h  | Systems Architect  | OK — active work                    |
+| OMN-214 | 3.4h  | Product Manager    | Needs check                         |
+| OMN-696 | 3.4h  | Risk Manager       | OK — reasonable scope               |
+| OMN-706 | 3.4h  | Senior QA Engineer | OK — integration work               |
+| OMN-131 | 2.2h  | Growth Engineer    | Blocked — agent in error state      |
+
+**Coordination Friction Detected**:
+
+1. **Growth Engineer (OMN-131)**: Agent in error state, task stalled 2.2h. Cannot self-initiate.
+2. **Systems Analyst (OMN-596)**: Task stalled 15.1h. Agent status unknown (may be error).
+3. **CEO-owned tasks**: OMN-39 stalled 14.5h — blocks Product lane velocity.
+4. **Handoff gap**: 16 in-progress tasks, some with no visible progress in comments.
+
+**KPI Status** (from [kpi-compliance-2026-03-31](/OMN/metrics/kpi-compliance-2026-03-31.md)):
+
+- Velocity: 8h17m avg vs <4h target — 2x violation
+- Fluidity: Insufficient data
+- Quality: UNKNOWN (Technical Critic offline)
+- Proactivity: UNKNOWN (insufficient data)
+- SLA Violations: 5 critical (23+ heartbeats in_progress)
+
+**Actions**:
+
+- Flagged OMN-131 (Growth Engineer) as blocked — needs agent restart
+- Flagged OMN-596 (Systems Analyst) for CEO attention
+- OMN-39 (CEO-owned) documented as coordination friction — CEO should address personally
+- Lane balance: Engineering (Systems Architect, Senior QA) and Product (PM, Risk Manager) both active — parity maintained
+
+**Recommendation to CEO**:
+
+1. Fix Growth Engineer error state to unblock OMN-131
+2. Address OMN-39 (CEO-owned, 14.5h stale) or reassign
+3. Restore Technical Critic to enable quality rate measurement
+4. Investigate Systems Analyst (OMN-596) — 15.1h stale is a coordination red flag
+
 ### 2026-03-30 11:52 UTC (Risk Manager Heartbeat)
 
 - **Risk Manager**: Proactive risk scan completed

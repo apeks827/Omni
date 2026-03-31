@@ -310,26 +310,51 @@ class TaskRepository {
     workspaceId: string,
     data: UpdateTaskData
   ): Promise<Task | null> {
-    const setClauses: string[] = [
-      'title = $1',
-      'description = $2',
-      'status = $3',
-      'priority = $4',
-      'project_id = $5',
-      'assignee_id = $6',
-      'due_date = $7',
-      'updated_at = NOW()',
-    ]
-    const values: any[] = [
-      data.title,
-      data.description,
-      data.status,
-      data.priority,
-      data.project_id,
-      data.assignee_id,
-      data.due_date,
-    ]
-    let paramIndex = 8
+    const setClauses: string[] = ['updated_at = NOW()']
+    const values: any[] = []
+    let paramIndex = 1
+
+    if (data.title !== undefined) {
+      setClauses.push(`title = $${paramIndex}`)
+      values.push(data.title)
+      paramIndex++
+    }
+
+    if (data.description !== undefined) {
+      setClauses.push(`description = $${paramIndex}`)
+      values.push(data.description)
+      paramIndex++
+    }
+
+    if (data.status !== undefined) {
+      setClauses.push(`status = $${paramIndex}`)
+      values.push(data.status)
+      paramIndex++
+    }
+
+    if (data.priority !== undefined) {
+      setClauses.push(`priority = $${paramIndex}`)
+      values.push(data.priority)
+      paramIndex++
+    }
+
+    if (data.project_id !== undefined) {
+      setClauses.push(`project_id = $${paramIndex}`)
+      values.push(data.project_id)
+      paramIndex++
+    }
+
+    if (data.assignee_id !== undefined) {
+      setClauses.push(`assignee_id = $${paramIndex}`)
+      values.push(data.assignee_id)
+      paramIndex++
+    }
+
+    if (data.due_date !== undefined) {
+      setClauses.push(`due_date = $${paramIndex}`)
+      values.push(data.due_date)
+      paramIndex++
+    }
 
     if (data.preferred_device !== undefined) {
       setClauses.push(`preferred_device = $${paramIndex}`)
