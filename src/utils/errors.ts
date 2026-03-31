@@ -43,6 +43,10 @@ export const ErrorCodes = {
   RATE_LIMIT_EXCEEDED: 'rate_limit_exceeded',
   DATABASE_ERROR: 'database_error',
   SERVICE_UNAVAILABLE: 'service_unavailable',
+  // Platform Integration Errors
+  PLATFORM_ASSIGNEE_AGENT_ID_ERROR: 'platform_assignee_agent_id_error',
+  PLATFORM_EXECUTION_LOCK_ERROR: 'platform_execution_lock_error',
+  PLATFORM_API_ERROR: 'platform_api_error',
 } as const
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes]
@@ -71,6 +75,35 @@ export const ConflictError = (
 
 export const DatabaseError = (message = 'Database operation failed') =>
   new AppError(ErrorCodes.DATABASE_ERROR, message, {}, 500)
+
+export const PlatformAssigneeAgentIdError = (
+  details?: Record<string, unknown>
+) =>
+  new AppError(
+    ErrorCodes.PLATFORM_ASSIGNEE_AGENT_ID_ERROR,
+    'Platform API error: assigneeAgentId field causes 500 error',
+    details,
+    500
+  )
+
+export const PlatformExecutionLockError = (details?: Record<string, unknown>) =>
+  new AppError(
+    ErrorCodes.PLATFORM_EXECUTION_LOCK_ERROR,
+    'Platform API error: execution lock conflict prevents task update',
+    details,
+    500
+  )
+
+export const PlatformApiError = (
+  message: string,
+  details?: Record<string, unknown>
+) =>
+  new AppError(
+    ErrorCodes.PLATFORM_API_ERROR,
+    `Platform API error: ${message}`,
+    details,
+    500
+  )
 
 export function handleError(
   error: unknown,
