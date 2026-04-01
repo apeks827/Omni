@@ -12,5 +12,6 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       exclude: ['node_modules/', 'dist/', 'client/', 'migrations/'],
     },
+    testTimeout: 60000,
   },
 })

@@ -1,8 +1,15 @@
 import React, { useState } from 'react'
-import { Task } from '../types'
+import { Task, RecurrenceRule } from '../types'
+import RecurrencePicker from './RecurrencePicker'
+import DueDatePicker from './DueDatePicker'
 
 interface TaskFormProps {
-  onSubmit: (task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'workspace_id' | 'creator_id'>) => void
+  onSubmit: (
+    task: Omit<
+      Task,
+      'id' | 'created_at' | 'updated_at' | 'workspace_id' | 'creator_id'
+    > & { recurrence_rule?: RecurrenceRule | null }
+  ) => void
   onCancel: () => void
 }
 
@@ -11,6 +18,10 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState<Task['status']>('todo')
   const [priority, setPriority] = useState<Task['priority']>('medium')
+  const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule | null>(
+    null
+  )
+  const [dueDate, setDueDate] = useState<Date | undefined>(undefined)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,12 +32,16 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
       description,
       status,
       priority,
+      recurrence_rule: recurrenceRule,
+      due_date: dueDate,
     })
 
     setTitle('')
     setDescription('')
     setStatus('todo')
     setPriority('medium')
+    setRecurrenceRule(null)
+    setDueDate(undefined)
   }
 
   return (
@@ -72,6 +87,13 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
         />
       </div>
 
+      <div style={{ marginBottom: '10px' }}>
+        <label style={{ display: 'block', marginBottom: '5px' }}>
+          Due Date
+        </label>
+        <DueDatePicker value={dueDate || null} onChange={setDueDate} />
+      </div>
+
       <div style={{ marginBottom: '10px', display: 'flex', gap: '10px' }}>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', marginBottom: '5px' }}>
@@ -115,20 +137,11 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <button
-          type="submit"
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-          }}
-        >
-          Create Task
-        </button>
+      <div style={{ marginBottom: '10px' }}>
+        <RecurrencePicker value={recurrenceRule} onChange={setRecurrenceRule} />
+      </div>
+
+      <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
         <button
           type="button"
           onClick={onCancel}
@@ -142,6 +155,19 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
           }}
         >
           Cancel
+        </button>
+        <button
+          type="submit"
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+          }}
+        >
+          Create Task
         </button>
       </div>
     </form>

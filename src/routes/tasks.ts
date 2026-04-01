@@ -1,104 +1,315 @@
 import { Router } from 'express'
 import { Response } from 'express'
-import { query } from '../config/database.js'
 import { authenticateToken, AuthRequest } from '../middleware/auth.js'
 import { validate, validateParams } from '../middleware/validation.js'
 import {
   createTaskSchema,
   updateTaskSchema,
   uuidParamSchema,
+  quickTaskSchema,
+  bulkUpdateTaskSchema,
+  bulkDeleteTaskSchema,
+  bulkMoveTaskSchema,
 } from '../validation/schemas.js'
-import handoffService from '../services/handoff/handoff.service.js'
+import taskService from '../domains/tasks/services/TaskService.js'
+import prioritizationService from '../services/prioritization/prioritization.service.js'
+import { handleError, AppError, ErrorCodes } from '../utils/errors.js'
+import { userRateLimit } from '../middleware/rateLimit.js'
+import { createAIClient } from '../services/ai/client.js'
+import { cacheMiddleware, invalidateCache } from '../middleware/cache.js'
 
 const router = Router()
 
-const hasWorkspaceResource = async (
-  table: 'projects' | 'users',
-  id: string,
-  workspaceId: string
-) => {
-  const result = await query(
-    `SELECT id FROM ${table} WHERE id = $1 AND workspace_id = $2`,
-    [id, workspaceId]
-  )
-
-  return result.rows.length > 0
-}
-
-interface Task {
-  id: string
-  title: string
-  description?: string
-  status: 'pending' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
-  priority: 'low' | 'medium' | 'high' | 'critical'
-  project_id?: string
-  assignee_id?: string
-  creator_id: string
-  workspace_id: string
-  due_date?: Date
-  created_at: Date
-  updated_at: Date
-}
-
 router.use(authenticateToken)
 
-router.get('/', async (req: AuthRequest, res: Response) => {
-  try {
-    const workspaceId = req.workspaceId
-    const { status, priority, project_id } = req.query
+router.get(
+  '/',
+  cacheMiddleware({ ttl: 30 }),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const workspaceId = req.workspaceId as string
+      const {
+        status,
+        priority,
+        project_id,
+        label_id,
+        page,
+        limit,
+        context_device,
+        context_time_of_day,
+      } = req.query
 
-    let queryText = 'SELECT * FROM tasks WHERE workspace_id = $1'
-    const params: any[] = [workspaceId]
-    let paramIndex = 2
+      const statusStr = typeof status === 'string' ? status : undefined
+      const priorityStr = typeof priority === 'string' ? priority : undefined
+      const projectIdStr =
+        typeof project_id === 'string' ? project_id : undefined
+      const labelIdStr = typeof label_id === 'string' ? label_id : undefined
+      const pageNum = typeof page === 'string' ? parseInt(page, 10) : undefined
+      const limitNum =
+        typeof limit === 'string' ? parseInt(limit, 10) : undefined
+      const contextDeviceStr =
+        typeof context_device === 'string' ? context_device : undefined
+      const contextTimeOfDayStr =
+        typeof context_time_of_day === 'string'
+          ? context_time_of_day
+          : undefined
 
-    if (status) {
-      queryText += ` AND status = $${paramIndex}`
-      params.push(status)
-      paramIndex++
+      const result = await taskService.listTasks(workspaceId, {
+        status: statusStr,
+        priority: priorityStr,
+        project_id: projectIdStr,
+        label_id: labelIdStr,
+        page: pageNum,
+        limit: limitNum,
+        context_device: contextDeviceStr,
+        context_time_of_day: contextTimeOfDayStr,
+      })
+
+      res.json(result)
+    } catch (error) {
+      const { status, body } = handleError(error, 'Failed to fetch tasks')
+      res.status(status).json(body)
     }
-
-    if (priority) {
-      queryText += ` AND priority = $${paramIndex}`
-      params.push(priority)
-      paramIndex++
-    }
-
-    if (project_id) {
-      queryText += ` AND project_id = $${paramIndex}`
-      params.push(project_id)
-      paramIndex++
-    }
-
-    queryText += ' ORDER BY created_at DESC'
-
-    const result = await query(queryText, params)
-    res.json(result.rows)
-  } catch (error) {
-    console.error('Error fetching tasks:', error)
-    res.status(500).json({ error: 'Internal server error' })
   }
+)
+
+router.get(
+  '/context-aware',
+  cacheMiddleware({ ttl: 30 }),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const workspaceId = req.workspaceId as string
+      const {
+        device,
+        time_of_day,
+        status,
+        priority,
+        project_id,
+        label_id,
+        page,
+        limit,
+      } = req.query
+
+      const deviceStr = typeof device === 'string' ? device : undefined
+      const timeOfDayStr =
+        typeof time_of_day === 'string' ? time_of_day : undefined
+      const statusStr = typeof status === 'string' ? status : undefined
+      const priorityStr = typeof priority === 'string' ? priority : undefined
+      const projectIdStr =
+        typeof project_id === 'string' ? project_id : undefined
+      const labelIdStr = typeof label_id === 'string' ? label_id : undefined
+      const pageNum = typeof page === 'string' ? parseInt(page, 10) : undefined
+      const limitNum =
+        typeof limit === 'string' ? parseInt(limit, 10) : undefined
+
+      const result = await taskService.listTasks(workspaceId, {
+        status: statusStr,
+        priority: priorityStr,
+        project_id: projectIdStr,
+        label_id: labelIdStr,
+        page: pageNum,
+        limit: limitNum,
+        context_device: deviceStr,
+        context_time_of_day: timeOfDayStr,
+      })
+
+      res.json(result)
+    } catch (error) {
+      const { status, body } = handleError(
+        error,
+        'Failed to fetch context-aware tasks'
+      )
+      res.status(status).json(body)
+    }
+  }
+)
+
+const bulkRateLimit = userRateLimit({
+  windowMs: 60000,
+  max: 10,
+  message: 'Rate limit exceeded: 10 bulk operations per minute',
 })
+
+router.patch(
+  '/bulk',
+  bulkRateLimit,
+  validate(bulkUpdateTaskSchema),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { task_ids, updates } = req.body
+      const workspaceId = req.workspaceId as string
+      const userId = req.userId as string
+
+      const result = await taskService.bulkUpdateTasks(
+        task_ids,
+        workspaceId,
+        userId,
+        updates || {}
+      )
+
+      res.json({
+        updated_count: result.success,
+        failed_count: result.failed,
+        total: task_ids.length,
+        errors: result.errors,
+      })
+    } catch (error) {
+      const { status, body } = handleError(error, 'Failed to bulk update tasks')
+      res.status(status).json(body)
+    }
+  }
+)
+
+router.delete(
+  '/bulk',
+  bulkRateLimit,
+  validate(bulkDeleteTaskSchema),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { task_ids } = req.body
+      const workspaceId = req.workspaceId as string
+
+      const result = await taskService.bulkDeleteTasks(task_ids, workspaceId)
+
+      res.json({
+        deleted_count: result.success,
+        failed_count: result.failed,
+        total: task_ids.length,
+        errors: result.errors,
+      })
+    } catch (error) {
+      const { status, body } = handleError(error, 'Failed to bulk delete tasks')
+      res.status(status).json(body)
+    }
+  }
+)
+
+router.post(
+  '/bulk/move',
+  bulkRateLimit,
+  validate(bulkMoveTaskSchema),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { task_ids, project_id } = req.body
+      const workspaceId = req.workspaceId as string
+
+      const result = await taskService.bulkMoveTasks(
+        task_ids,
+        workspaceId,
+        project_id
+      )
+
+      res.json({
+        moved_count: result.success,
+        failed_count: result.failed,
+        total: task_ids.length,
+        project_id,
+        errors: result.errors,
+      })
+    } catch (error) {
+      const { status, body } = handleError(error, 'Failed to bulk move tasks')
+      res.status(status).json(body)
+    }
+  }
+)
 
 router.get(
   '/:id',
   validateParams(uuidParamSchema),
+  cacheMiddleware({ ttl: 60 }),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { id } = req.params
+      const id = req.params.id as string
+      const workspaceId = req.workspaceId as string
+
+      const task = await taskService.getTask(id, workspaceId)
+      res.json(task)
+    } catch (error) {
+      const { status, body } = handleError(error, 'Failed to fetch task')
+      res.status(status).json(body)
+    }
+  }
+)
+
+router.post(
+  '/quick',
+  validate(quickTaskSchema),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { input } = req.body
+      const userId = req.userId
       const workspaceId = req.workspaceId
-      const result = await query(
-        'SELECT * FROM tasks WHERE id = $1 AND workspace_id = $2',
-        [id, workspaceId]
+
+      const task = await taskService.createQuickTask(
+        input,
+        userId as string,
+        workspaceId as string
       )
 
-      if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Task not found' })
+      res.status(201).json(task)
+    } catch (error: any) {
+      if (
+        error.message?.includes('empty') ||
+        error.message?.includes('exceeds')
+      ) {
+        const err = new AppError(
+          ErrorCodes.VALIDATION_ERROR,
+          error.message,
+          {},
+          400
+        )
+        const { status, body } = handleError(err)
+        return res.status(status).json(body)
+      }
+      const { status, body } = handleError(error, 'Failed to create task')
+      res.status(status).json(body)
+    }
+  }
+)
+
+router.post(
+  '/extract',
+  userRateLimit({
+    windowMs: 60000,
+    max: 10,
+    message: 'Rate limit exceeded: 10 extractions per minute',
+  }),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { input } = req.body
+      const useLLM = process.env.NLP_LLM_ENABLED === 'true'
+
+      let extracted: Awaited<ReturnType<typeof taskService.extractTaskData>>
+
+      if (useLLM) {
+        try {
+          const aiClient = createAIClient()
+          const llmResult = await aiClient.extractTaskFromNaturalLanguage(input)
+          extracted = llmResult
+        } catch (llmError) {
+          extracted = taskService.extractTaskData(input)
+        }
+      } else {
+        extracted = taskService.extractTaskData(input)
       }
 
-      res.json(result.rows[0])
-    } catch (error) {
-      console.error('Error fetching task:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      res.json(extracted)
+    } catch (error: any) {
+      if (
+        error.message?.includes('empty') ||
+        error.message?.includes('exceeds')
+      ) {
+        const err = new AppError(
+          ErrorCodes.VALIDATION_ERROR,
+          error.message,
+          {},
+          400
+        )
+        const { status, body } = handleError(err)
+        return res.status(status).json(body)
+      }
+      const { status, body } = handleError(error, 'Failed to extract task data')
+      res.status(status).json(body)
     }
   }
 )
@@ -117,61 +328,36 @@ router.post(
         project_id,
         assignee_id,
         due_date,
+        label_ids,
+        preferred_device,
+        preferred_time_of_day,
+        context_tags,
       } = req.body
       const userId = req.userId
       const workspaceId = req.workspaceId
 
-      if (!title) {
-        return res.status(400).json({ error: 'Title is required' })
-      }
+      const task = await taskService.createTask({
+        title,
+        description,
+        status,
+        priority,
+        project_id,
+        assignee_id,
+        creator_id: userId as string,
+        workspace_id: workspaceId as string,
+        due_date,
+        label_ids,
+        preferred_device,
+        preferred_time_of_day,
+        context_tags,
+      })
 
-      if (project_id) {
-        const projectExists = await hasWorkspaceResource(
-          'projects',
-          project_id,
-          workspaceId as string
-        )
+      invalidateCache(`/api/tasks:.*:${workspaceId}`)
 
-        if (!projectExists) {
-          return res
-            .status(400)
-            .json({ error: 'Invalid project_id for workspace' })
-        }
-      }
-
-      if (assignee_id) {
-        const assigneeExists = await hasWorkspaceResource(
-          'users',
-          assignee_id,
-          workspaceId as string
-        )
-
-        if (!assigneeExists) {
-          return res
-            .status(400)
-            .json({ error: 'Invalid assignee_id for workspace' })
-        }
-      }
-
-      const result = await query(
-        'INSERT INTO tasks (title, description, status, priority, project_id, assignee_id, creator_id, workspace_id, due_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-        [
-          title,
-          description,
-          status || 'todo',
-          priority || 'medium',
-          project_id,
-          assignee_id,
-          userId,
-          workspaceId,
-          due_date,
-        ]
-      )
-
-      res.status(201).json(result.rows[0])
+      res.status(201).json(task)
     } catch (error) {
-      console.error('Error creating task:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      const { status, body } = handleError(error, 'Failed to create task')
+      res.status(status).json(body)
     }
   }
 )
@@ -182,7 +368,7 @@ router.put(
   validate(updateTaskSchema),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { id } = req.params
+      const id = req.params.id as string
       const {
         title,
         description,
@@ -192,70 +378,53 @@ router.put(
         project_id,
         assignee_id,
         due_date,
+        label_ids,
+        preferred_device,
+        preferred_time_of_day,
+        context_tags,
       } = req.body
-      const workspaceId = req.workspaceId
+      const workspaceId = req.workspaceId as string
+      const userId = req.userId as string
 
-      if (project_id) {
-        const projectExists = await hasWorkspaceResource(
-          'projects',
-          project_id,
-          workspaceId as string
-        )
+      const task = await taskService.updateTask(id, workspaceId, userId, {
+        title,
+        description,
+        status,
+        priority,
+        project_id,
+        assignee_id,
+        due_date,
+        label_ids,
+        preferred_device,
+        preferred_time_of_day,
+        context_tags,
+      })
 
-        if (!projectExists) {
-          return res
-            .status(400)
-            .json({ error: 'Invalid project_id for workspace' })
-        }
-      }
+      invalidateCache(`/api/tasks:.*:${workspaceId}`)
+      invalidateCache(`/api/tasks/${id}:.*:${workspaceId}`)
 
-      if (assignee_id) {
-        const assigneeExists = await hasWorkspaceResource(
-          'users',
-          assignee_id,
-          workspaceId as string
-        )
-
-        if (!assigneeExists) {
-          return res
-            .status(400)
-            .json({ error: 'Invalid assignee_id for workspace' })
-        }
-      }
-
-      const result = await query(
-        'UPDATE tasks SET title = $1, description = $2, status = $3, priority = $4, project_id = $5, assignee_id = $6, due_date = $7, updated_at = NOW() WHERE id = $8 AND workspace_id = $9 RETURNING *',
-        [
-          title,
-          description,
-          status,
-          priority,
-          project_id,
-          assignee_id,
-          due_date,
-          id,
-          workspaceId,
-        ]
-      )
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Task not found' })
-      }
-
-      const updatedTask = result.rows[0]
-
-      if (status) {
-        try {
-          await handoffService.triggerHandoffsForTask(updatedTask, workspaceId as string)
-        } catch (handoffError) {
-          console.error('Error triggering handoffs:', handoffError)
-        }
-      }
-
-      res.json(updatedTask)
+      res.json(task)
     } catch (error) {
-      console.error('Error updating task:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      const { status, body } = handleError(error, 'Failed to update task')
+      res.status(status).json(body)
+    }
+  }
+)
+
+router.post(
+  '/:id/schedule',
+  validateParams(uuidParamSchema),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const id = req.params.id as string
+      const workspaceId = req.workspaceId as string
+      const userId = req.userId as string
+
+      const result = await taskService.scheduleTask(id, userId, workspaceId)
+      res.json(result)
+    } catch (error) {
+      const { status, body } = handleError(error, 'Failed to schedule task')
+      res.status(status).json(body)
     }
   }
 )
@@ -265,23 +434,79 @@ router.delete(
   validateParams(uuidParamSchema),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { id } = req.params
-      const workspaceId = req.workspaceId
-      const result = await query(
-        'DELETE FROM tasks WHERE id = $1 AND workspace_id = $2 RETURNING id',
-        [id, workspaceId]
-      )
+      const id = req.params.id as string
+      const workspaceId = req.workspaceId as string
 
-      if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Task not found' })
-      }
+      await taskService.deleteTask(id, workspaceId)
+
+      invalidateCache(`/api/tasks:.*:${workspaceId}`)
+      invalidateCache(`/api/tasks/${id}:.*:${workspaceId}`)
 
       res.status(204).send()
     } catch (error) {
-      console.error('Error deleting task:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      const { status, body } = handleError(error, 'Failed to delete task')
+      res.status(status).json(body)
     }
   }
 )
+
+router.get('/priorities', async (req: AuthRequest, res: Response) => {
+  try {
+    const workspaceId = req.workspaceId as string
+    const userId = req.userId as string
+
+    const result = await taskService.listTasks(workspaceId, {
+      status: 'pending',
+      limit: 100,
+    })
+
+    const prioritized = await prioritizationService.suggestPriorities(
+      result.data,
+      userId,
+      workspaceId
+    )
+
+    res.json({
+      tasks: prioritized.sort((a, b) => b.score - a.score),
+      weights: prioritizationService.getWeights(),
+    })
+  } catch (error) {
+    const { status, body } = handleError(
+      error,
+      'Failed to get priority suggestions'
+    )
+    res.status(status).json(body)
+  }
+})
+
+router.post(
+  '/priorities/:taskId/feedback',
+  validateParams(uuidParamSchema),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const taskId = req.params.taskId as string
+      const { accepted } = req.body
+      const userId = req.userId as string
+
+      await prioritizationService.recordFeedback(taskId, userId, accepted)
+
+      res.json({ success: true, taskId, accepted })
+    } catch (error) {
+      const { status, body } = handleError(error, 'Failed to record feedback')
+      res.status(status).json(body)
+    }
+  }
+)
+
+router.put('/priorities/weights', async (req: AuthRequest, res: Response) => {
+  try {
+    const weights = req.body
+    prioritizationService.setWeights(weights)
+    res.json({ success: true, weights: prioritizationService.getWeights() })
+  } catch (error) {
+    const { status, body } = handleError(error, 'Failed to update weights')
+    res.status(status).json(body)
+  }
+})
 
 export default router

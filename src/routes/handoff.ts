@@ -2,6 +2,8 @@ import { Router } from 'express'
 import { Response } from 'express'
 import { authenticateToken, AuthRequest } from '../middleware/auth.js'
 import handoffService from '../services/handoff/handoff.service.js'
+import reviewService from '../services/review/review.service.js'
+import { AppError, ErrorCodes, handleError } from '../utils/errors.js'
 
 const router = Router()
 
@@ -19,12 +21,22 @@ router.post('/templates', async (req: AuthRequest, res: Response) => {
       assignee_role,
       assignee_agent_id,
       auto_mention,
+      review_template,
+      reviewer_agent_id,
+      approved_status,
+      revise_status,
     } = req.body
 
-    if (!from_status || !next_title) {
+    if (!from_status || (!next_title && !review_template)) {
+      return res.status(400).json({
+        error: 'from_status and next_title or review_template are required',
+      })
+    }
+
+    if (review_template && !reviewer_agent_id) {
       return res
         .status(400)
-        .json({ error: 'from_status and next_title are required' })
+        .json({ error: 'reviewer_agent_id is required for review templates' })
     }
 
     const template = await handoffService.createTemplate({
@@ -32,11 +44,15 @@ router.post('/templates', async (req: AuthRequest, res: Response) => {
       project_id,
       goal_id,
       from_status,
-      next_title,
+      next_title: next_title || `Review: ${from_status}`,
       next_description,
       assignee_role,
       assignee_agent_id,
       auto_mention,
+      review_template,
+      reviewer_agent_id,
+      approved_status,
+      revise_status,
     })
 
     res.status(201).json(template)
@@ -85,13 +101,20 @@ router.get('/templates/:id', async (req: AuthRequest, res: Response) => {
     )
 
     if (!template) {
-      return res.status(404).json({ error: 'Template not found' })
+      const error = new AppError(
+        ErrorCodes.TASK_NOT_FOUND,
+        'Template not found',
+        { template_id: id },
+        404
+      )
+      const { status, body } = handleError(error)
+      return res.status(status).json(body)
     }
 
     res.json(template)
   } catch (error) {
-    console.error('Error fetching handoff template:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    const { status, body } = handleError(error, 'Failed to fetch template')
+    res.status(status).json(body)
   }
 })
 
@@ -204,6 +227,83 @@ router.get('/all', async (req: AuthRequest, res: Response) => {
     res.json(handoffs)
   } catch (error) {
     console.error('Error fetching all handoffs:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+router.post('/review/:taskId', async (req: AuthRequest, res: Response) => {
+  try {
+    const taskId = req.params.taskId as string
+    const workspaceId = req.workspaceId
+    const { decision, comment } = req.body
+
+    if (!decision || !['approved', 'revise'].includes(decision)) {
+      return res
+        .status(400)
+        .json({ error: 'Invalid decision. Must be "approved" or "revise"' })
+    }
+
+    const reviewTask = await reviewService.getReviewTask(
+      taskId,
+      workspaceId as string
+    )
+
+    if (!reviewTask) {
+      return res.status(404).json({ error: 'Review task not found' })
+    }
+
+    const result = await reviewService.handleReviewDecision(
+      reviewTask.id,
+      workspaceId as string,
+      decision,
+      comment
+    )
+
+    res.json(result)
+  } catch (error) {
+    console.error('Error handling review decision:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+router.get('/reviews/pending', async (req: AuthRequest, res: Response) => {
+  try {
+    const workspaceId = req.workspaceId
+    const agentId = req.query.agent_id as string
+
+    if (!agentId) {
+      return res.status(400).json({ error: 'agent_id is required' })
+    }
+
+    const reviews = await reviewService.getPendingReviewsForAgent(
+      agentId,
+      workspaceId as string
+    )
+
+    res.json(reviews)
+  } catch (error) {
+    console.error('Error fetching pending reviews:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+router.get('/review/:taskId', async (req: AuthRequest, res: Response) => {
+  try {
+    const taskId = req.params.taskId as string
+    const workspaceId = req.workspaceId
+
+    const review = await reviewService.getReviewTask(
+      taskId,
+      workspaceId as string
+    )
+
+    if (!review) {
+      return res.status(404).json({ error: 'Review not found' })
+    }
+
+    res.json(review)
+  } catch (error) {
+    console.error('Error fetching review:', error)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

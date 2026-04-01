@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Task } from '../types'
 import TaskItem from './TaskItem'
 import { Badge, Card, Stack, Text, colors } from '../design-system'
@@ -7,12 +7,22 @@ interface TaskBoardProps {
   tasks: Task[]
   onToggleStatus: (taskId: string) => void
   onDelete: (taskId: string) => void
+  selectedTaskIds: Set<string>
+  onToggleSelect: (taskId: string) => void
+  onRangeSelect: (taskId: string) => void
+  onSelectAll: (taskIds: string[]) => void
+  onClearSelection: () => void
 }
 
 const TaskBoard: React.FC<TaskBoardProps> = ({
   tasks,
   onToggleStatus,
   onDelete,
+  selectedTaskIds,
+  onToggleSelect,
+  onRangeSelect,
+  onSelectAll,
+  onClearSelection,
 }) => {
   const columns: Array<{
     status: Task['status']
@@ -20,10 +30,42 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
     color: string
     badgeVariant: 'primary' | 'warning' | 'success'
   }> = [
-    { status: 'todo', title: 'To Do', color: colors.primary, badgeVariant: 'primary' },
-    { status: 'in_progress', title: 'In Progress', color: colors.warning, badgeVariant: 'warning' },
-    { status: 'done', title: 'Done', color: colors.success, badgeVariant: 'success' },
+    {
+      status: 'todo',
+      title: 'To Do',
+      color: colors.primary,
+      badgeVariant: 'primary',
+    },
+    {
+      status: 'in_progress',
+      title: 'In Progress',
+      color: colors.warning,
+      badgeVariant: 'warning',
+    },
+    {
+      status: 'done',
+      title: 'Done',
+      color: colors.success,
+      badgeVariant: 'success',
+    },
   ]
+
+  const allTaskIds = tasks.map(t => t.id)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClearSelection()
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+        e.preventDefault()
+        onSelectAll(allTaskIds)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [allTaskIds, onSelectAll, onClearSelection])
 
   const getTasksByStatus = (status: Task['status']) => {
     return tasks.filter(task => task.status === status)
@@ -58,7 +100,9 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
             <Stack spacing="md">
               <Stack direction="horizontal" align="center" justify="between">
                 <Text variant="h4">{column.title}</Text>
-                <Badge variant={column.badgeVariant}>{columnTasks.length}</Badge>
+                <Badge variant={column.badgeVariant}>
+                  {columnTasks.length}
+                </Badge>
               </Stack>
               <Stack spacing="sm">
                 {columnTasks.length === 0 ? (
@@ -81,6 +125,9 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
                       task={task}
                       onToggleStatus={onToggleStatus}
                       onDelete={onDelete}
+                      isSelected={selectedTaskIds.has(task.id)}
+                      onToggleSelect={onToggleSelect}
+                      onRangeSelect={onRangeSelect}
                     />
                   ))
                 )}

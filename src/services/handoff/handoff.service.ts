@@ -11,6 +11,10 @@ interface HandoffTemplate {
   assignee_role?: string
   assignee_agent_id?: string
   auto_mention?: boolean
+  review_template?: boolean
+  reviewer_agent_id?: string
+  approved_status?: string
+  revise_status?: string
   created_at: Date
   updated_at: Date
 }
@@ -43,11 +47,15 @@ export class HandoffService {
     assignee_role?: string
     assignee_agent_id?: string
     auto_mention?: boolean
+    review_template?: boolean
+    reviewer_agent_id?: string
+    approved_status?: string
+    revise_status?: string
   }): Promise<HandoffTemplate> {
     const result = await query(
       `INSERT INTO handoff_templates 
-       (workspace_id, project_id, goal_id, from_status, next_title, next_description, assignee_role, assignee_agent_id, auto_mention) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+       (workspace_id, project_id, goal_id, from_status, next_title, next_description, assignee_role, assignee_agent_id, auto_mention, review_template, reviewer_agent_id, approved_status, revise_status) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
        RETURNING *`,
       [
         data.workspace_id,
@@ -59,12 +67,19 @@ export class HandoffService {
         data.assignee_role,
         data.assignee_agent_id,
         data.auto_mention ?? false,
+        data.review_template ?? false,
+        data.reviewer_agent_id,
+        data.approved_status,
+        data.revise_status,
       ]
     )
     return result.rows[0]
   }
 
-  async getTemplateById(id: string, workspaceId: string): Promise<HandoffTemplate | null> {
+  async getTemplateById(
+    id: string,
+    workspaceId: string
+  ): Promise<HandoffTemplate | null> {
     const result = await query(
       'SELECT * FROM handoff_templates WHERE id = $1 AND workspace_id = $2',
       [id, workspaceId]
@@ -98,6 +113,10 @@ export class HandoffService {
       assignee_role?: string
       assignee_agent_id?: string
       auto_mention?: boolean
+      review_template?: boolean
+      reviewer_agent_id?: string
+      approved_status?: string
+      revise_status?: string
     }>
   ): Promise<HandoffTemplate> {
     const fields: string[] = []
@@ -128,7 +147,10 @@ export class HandoffService {
     return result.rows[0]
   }
 
-  async deleteTemplate(id: string, workspaceId: string): Promise<HandoffTemplate> {
+  async deleteTemplate(
+    id: string,
+    workspaceId: string
+  ): Promise<HandoffTemplate> {
     const result = await query(
       'DELETE FROM handoff_templates WHERE id = $1 AND workspace_id = $2 RETURNING *',
       [id, workspaceId]
@@ -138,15 +160,18 @@ export class HandoffService {
       throw new Error(`Template with id ${id} not found`)
     }
 
-    await query('DELETE FROM handoffs WHERE template_id = $1 AND workspace_id = $2', [
-      id,
-      workspaceId,
-    ])
+    await query(
+      'DELETE FROM handoffs WHERE template_id = $1 AND workspace_id = $2',
+      [id, workspaceId]
+    )
 
     return result.rows[0]
   }
 
-  async triggerHandoffsForTask(task: any, workspaceId: string): Promise<TriggeredHandoff[]> {
+  async triggerHandoffsForTask(
+    task: any,
+    workspaceId: string
+  ): Promise<TriggeredHandoff[]> {
     const templatesResult = await query(
       `SELECT * FROM handoff_templates 
        WHERE workspace_id = $1 

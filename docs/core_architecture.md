@@ -1,8 +1,11 @@
-# Core Architecture: Task Manager
+# Core Architecture: Omni Task Manager
+
+**Last Updated**: 2026-03-30  
+**Status**: Implemented
 
 ## Overview
 
-This document defines the core architecture for the task manager system, outlining the data models, API contracts, and architectural principles that will guide the implementation.
+This document defines the core architecture for Omni, an AI-first personal operating system. The system has evolved significantly with layered architecture, goal-tracking, energy management, and autonomous agent capabilities.
 
 ## Architecture Principles
 
@@ -11,115 +14,98 @@ This document defines the core architecture for the task manager system, outlini
 3. **Reliability**: System must maintain 99.9% uptime with robust error handling
 4. **Security**: Privacy by design with secure authentication and authorization
 5. **Extensibility**: Modular design allowing new features without breaking changes
+6. **AI-First**: Built from the ground up for intelligent automation and decision-making
+7. **Layered Architecture**: Clean separation via Router → Service → Repository pattern
 
-## Data Model
+## Implemented Domain Structure
 
-### Task Entity
-
-```sql
-CREATE TABLE tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    type VARCHAR(20) NOT NULL DEFAULT 'task' CHECK (type IN ('task', 'habit', 'routine')),
-    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'scheduled', 'in_progress', 'completed', 'cancelled')),
-    priority VARCHAR(20) DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'critical')),
-    context JSONB,
-    project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
-    assignee_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    creator_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    workspace_id UUID NOT NULL,
-    due_date TIMESTAMP WITH TIME ZONE,
-    estimated_duration INTEGER,
-    actual_duration INTEGER,
-    completed_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+```
+src/
+├── routes/              # HTTP layer (zero SQL)
+│   ├── tasks.ts, projects.ts, labels.ts
+│   ├── goals.ts, key_results.ts, task_goal_links.ts
+│   ├── calendar.ts, schedule.ts, energy.ts
+│   ├── comments.ts, activities.ts
+│   ├── auth.ts, quota.ts, errors.ts
+│   └── handoff.ts, escalation.ts, metrics.ts
+├── domains/             # Business domains (layered)
+│   ├── tasks/           # services + repositories
+│   ├── projects/
+│   ├── labels/
+│   ├── goals/           # OKR tracking
+│   ├── calendar/        # External calendar sync
+│   ├── schedule/        # Intelligent scheduling
+│   ├── energy/           # Energy pattern learning
+│   ├── comments/
+│   ├── activities/
+│   ├── auth/
+│   ├── quota/           # Rate limiting
+│   └── errors/
+├── middleware/          # Auth, validation, rate limiting
+├── models/              # TypeScript interfaces
+└── utils/               # Shared utilities
 ```
 
-### Project Entity
+## Data Model (Implemented)
+
+See [docs/database-schema.md](docs/database-schema.md) for complete schema.
+
+### Core Entities
+
+| Entity                | Purpose              | Key Fields                                                 |
+| --------------------- | -------------------- | ---------------------------------------------------------- |
+| users                 | User accounts        | email, password_hash, timezone, preferences                |
+| workspaces            | Data isolation       | id, name, owner_id                                         |
+| projects              | Task grouping        | id, name, workspace_id                                     |
+| tasks                 | Core unit            | type (task/habit/routine), status, priority, context JSONB |
+| labels                | Task categorization  | name, color, workspace_id                                  |
+| goals                 | OKR tracking         | title, level (company/team/personal)                       |
+| key_results           | Goal metrics         | title, metric_type, target_value                           |
+| task_goal_links       | Task-to-goal mapping | task_id, goal_id                                           |
+| activities            | Audit trail          | entity_type, action, metadata                              |
+| comments              | Task discussions     | task_id, content, author_id                                |
+| schedule_slots        | Time allocation      | task_id, start_time, end_time                              |
+| energy_levels         | Energy tracking      | date, hour, level                                          |
+| daily_energy_patterns | Energy patterns      | day_of_week, hour, avg_energy                              |
+
+### AI/Context Fields
 
 ```sql
-CREATE TABLE projects (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    workspace_id UUID NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- Tasks include AI context
+context JSONB,           -- AI-extracted context
+ai_priority FLOAT,       -- AI-calculated priority
+ai_suggested_time JSONB, -- AI-suggested scheduling
+energy_level VARCHAR,    -- Required energy (low/medium/high)
+focus_area VARCHAR,      -- Category for focus tracking
 ```
 
-### User Entity
+## API Structure
 
-```sql
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    name VARCHAR(255),
-    workspace_id UUID NOT NULL,
-    timezone VARCHAR(50),
-    preferences JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
+### Core Routes (Implemented)
 
-### Workspace Entity
+| Route              | Purpose             | Domain     |
+| ------------------ | ------------------- | ---------- |
+| `/api/tasks`       | CRUD + search       | tasks      |
+| `/api/projects`    | Project management  | projects   |
+| `/api/labels`      | Label management    | labels     |
+| `/api/goals`       | OKR tracking        | goals      |
+| `/api/key-results` | Goal metrics        | goals      |
+| `/api/calendar`    | External sync       | calendar   |
+| `/api/schedule`    | Schedule generation | schedule   |
+| `/api/energy`      | Energy patterns     | energy     |
+| `/api/comments`    | Task discussions    | comments   |
+| `/api/activities`  | Audit trail         | activity   |
+| `/api/auth`        | Authentication      | auth       |
+| `/api/quota`       | Rate limiting       | quota      |
+| `/api/handoff`     | Agent handoffs      | handoff    |
+| `/api/escalation`  | Escalation handling | escalation |
+| `/api/metrics`     | Performance metrics | metrics    |
 
-```sql
-CREATE TABLE workspaces (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
+### WebSocket Events
 
-## API Contract
-
-### Task Operations
-
-#### GET /api/tasks
-
-Retrieve tasks with filtering and pagination
-
-- Query parameters: status, priority, project_id, limit, offset
-- Authentication: Required
-- Response: Array of Task objects
-
-#### GET /api/tasks/:id
-
-Retrieve a specific task
-
-- Authentication: Required (workspace isolation)
-- Response: Single Task object
-
-#### POST /api/tasks
-
-Create a new task
-
-- Body: { title, description?, type?, status?, priority?, project_id?, assignee_id?, due_date?, context? }
-- Authentication: Required
-- Response: Created Task object
-
-#### PUT /api/tasks/:id
-
-Update an existing task
-
-- Body: { title?, description?, type?, status?, priority?, project_id?, assignee_id?, due_date?, context? }
-- Authentication: Required (workspace isolation)
-- Response: Updated Task object
-
-#### DELETE /api/tasks/:id
-
-Delete a task
-
-- Authentication: Required (workspace isolation)
-- Response: 204 No Content
+- `task.updated` - Real-time task changes
+- `schedule.changed` - Schedule updates
+- `context.changed` - Context changes
 
 ## Performance Requirements
 
@@ -129,30 +115,25 @@ Delete a task
 - 99.9% uptime requirement
 - Support for 10k+ tasks per user
 
-## Security Considerations
+## Security Implementation
 
-- All endpoints require authentication via JWT
-- Workspace-based isolation to prevent cross-user data access
-- Input validation and sanitization
-- Rate limiting to prevent abuse
-- Proper SQL injection prevention through parameterized queries
+- JWT authentication with refresh tokens
+- Workspace-based isolation (all queries scoped)
+- Rate limiting per user (quota system)
+- Input validation via Zod schemas
+- Parameterized queries (SQL injection prevention)
 
-## Deployment Architecture
+## Deployment
 
-- PostgreSQL database with connection pooling
-- Node.js/Express API server with horizontal scaling capability
-- Reverse proxy/load balancer for traffic distribution
-- Redis for caching and session storage (future enhancement)
-- CDN for static assets (future enhancement)
+- PostgreSQL with connection pooling
+- Node.js/Express API (horizontal scaling capable)
+- Docker containerization
+- Deploy scripts: `deploy-staging.sh`, `deploy-prod.sh`
+- GitHub Actions CI/CD
 
-## Future Extensibility Points
+## Related Documentation
 
-- Labels/Tags system for enhanced categorization
-- Subtasks for hierarchical task organization
-- Activity logging for audit trails
-- Notification system for task updates
-- Integration with external calendar systems
-- AI-powered task suggestions and prioritization
-- Agent execution runtime for autonomous workflows
-- Real-time WebSocket communication for live updates
-- Paperclip integration for task management workflow
+- [docs/database-schema.md](docs/database-schema.md) - Full schema
+- [docs/layered-architecture.md](docs/layered-architecture.md) - Layered pattern
+- [docs/phase2/architecture_deep_dive.md](docs/phase2/architecture_deep_dive.md) - Phase 2 plans
+- [architecture.md](../architecture.md) - Target AI-first architecture

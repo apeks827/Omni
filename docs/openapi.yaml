@@ -1,69 +1,784 @@
 openapi: 3.0.0
 info:
   title: Omni Task Manager API
-  description: API for the world's best task manager foundation.
+  description: |
+    API for the world's best task manager.
+
+    ## Authentication
+    All authenticated endpoints require a JWT bearer token in the Authorization header.
+
+    ## Rate Limiting
+    - Auth endpoints: 10 requests per 15 minutes
+    - Password reset: 3 requests per hour
+    - Bulk operations: 10 requests per minute
+    - General API: 100 requests per minute
   version: 1.0.0
 servers:
   - url: /api
+    description: API server
+
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
   schemas:
-    Task:
+    Error:
       type: object
-      required: [title, status, priority, workspace_id, creator_id]
       properties:
-        id: { type: string, format: uuid }
-        title: { type: string, maxLength: 255 }
-        description: { type: string }
-        status: { type: string, enum: [todo, in_progress, done] }
-        priority: { type: string, enum: [low, medium, high, critical] }
-        project_id: { type: string, format: uuid, nullable: true }
-        assignee_id: { type: string, format: uuid, nullable: true }
-        creator_id: { type: string, format: uuid }
-        workspace_id: { type: string, format: uuid }
-        due_date: { type: string, format: date-time, nullable: true }
-        created_at: { type: string, format: date-time }
-        updated_at: { type: string, format: date-time }
+        error:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        workspace_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Workspace:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        owner_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+
     Project:
       type: object
-      required: [name, owner_id, workspace_id]
+      required: [name, workspace_id]
       properties:
-        id: { type: string, format: uuid }
-        name: { type: string, maxLength: 255 }
-        description: { type: string }
-        owner_id: { type: string, format: uuid }
-        workspace_id: { type: string, format: uuid }
-        created_at: { type: string, format: date-time }
-        updated_at: { type: string, format: date-time }
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        workspace_id:
+          type: string
+          format: uuid
+        owner_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Task:
+      type: object
+      required: [title, workspace_id, creator_id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        type:
+          type: string
+          enum: [task, habit, routine]
+          default: task
+        status:
+          type: string
+          enum: [pending, scheduled, in_progress, completed, cancelled]
+          default: pending
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+          default: medium
+        project_id:
+          type: string
+          format: uuid
+          nullable: true
+        assignee_id:
+          type: string
+          format: uuid
+          nullable: true
+        creator_id:
+          type: string
+          format: uuid
+        workspace_id:
+          type: string
+          format: uuid
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        estimated_duration:
+          type: integer
+          description: Estimated duration in minutes
+        actual_duration:
+          type: integer
+          description: Actual duration in minutes
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        blocked:
+          type: boolean
+          default: false
+        blocked_reason:
+          type: string
+          nullable: true
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    TaskListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    Comment:
+      type: object
+      required: [content, task_id, user_id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        task_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        content:
+          type: string
+        parent_comment_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Label:
+      type: object
+      required: [name, workspace_id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 255
+        color:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
+        workspace_id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    ScheduleSlot:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        task_id:
+          type: string
+          format: uuid
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [scheduled, active, completed, skipped]
+
+    Habit:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        frequency:
+          type: string
+          enum: [daily, weekly, custom]
+        time_of_day:
+          type: string
+          enum: [morning, afternoon, evening, anytime]
+        workspace_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    Routine:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        schedule:
+          type: object
+        workspace_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    TimeEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        task_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+          nullable: true
+        duration:
+          type: integer
+          description: Duration in seconds
+        description:
+          type: string
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [task_due, task_assigned, comment_mention, habit_reminder]
+        title:
+          type: string
+        message:
+          type: string
+        read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
 security:
   - bearerAuth: []
+
+tags:
+  - name: Auth
+    description: Authentication endpoints
+  - name: Users
+    description: User management
+  - name: Workspaces
+    description: Workspace management
+  - name: Projects
+    description: Project management
+  - name: Tasks
+    description: Task CRUD operations
+  - name: Comments
+    description: Task comments
+  - name: Labels
+    description: Task labels
+  - name: Schedule
+    description: Task scheduling
+  - name: Habits
+    description: Habit tracking
+  - name: Routines
+    description: Routine management
+  - name: Time Tracking
+    description: Time entry tracking
+  - name: Notifications
+    description: User notifications
+  - name: Search
+    description: Full-text search
+
 paths:
+  # Auth endpoints (no authentication required)
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                name:
+                  type: string
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '423':
+          description: Account locked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Password reset email sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password with token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh JWT token
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout user
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  # Workspaces
+  /workspaces:
+    get:
+      tags: [Workspaces]
+      summary: List user's workspaces
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of workspaces
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Workspace'
+
+    post:
+      tags: [Workspaces]
+      summary: Create workspace
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        '201':
+          description: Workspace created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+
+  # Projects
+  /projects:
+    get:
+      tags: [Projects]
+      summary: List projects in workspace
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: workspace_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          required: true
+      responses:
+        '200':
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+
+    post:
+      tags: [Projects]
+      summary: Create project
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+
+  /projects/{id}:
+    get:
+      tags: [Projects]
+      summary: Get project by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+
+    put:
+      tags: [Projects]
+      summary: Update project
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Project updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+
+    delete:
+      tags: [Projects]
+      summary: Delete project
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Project deleted
+
+  # Tasks
   /tasks:
     get:
+      tags: [Tasks]
       summary: List tasks
+      security:
+        - bearerAuth: []
       parameters:
         - name: status
           in: query
-          schema: { type: string, enum: [todo, in_progress, done] }
+          schema:
+            type: string
+            enum: [pending, scheduled, in_progress, completed, cancelled]
         - name: priority
           in: query
-          schema: { type: string, enum: [low, medium, high, critical] }
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
         - name: project_id
           in: query
-          schema: { type: string, format: uuid }
+          schema:
+            type: string
+            format: uuid
+        - name: label_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
       responses:
         '200':
           description: List of tasks
           content:
             application/json:
               schema:
-                { type: array, items: { $ref: '#/components/schemas/Task' } }
+                $ref: '#/components/schemas/TaskListResponse'
+
     post:
+      tags: [Tasks]
       summary: Create task
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -72,16 +787,827 @@ paths:
               type: object
               required: [title]
               properties:
-                title: { type: string }
-                description: { type: string }
-                status: { type: string }
-                priority: { type: string }
-                project_id: { type: string, format: uuid }
-                assignee_id: { type: string, format: uuid }
-                due_date: { type: string, format: date-time }
+                title:
+                  type: string
+                description:
+                  type: string
+                type:
+                  type: string
+                  enum: [task, habit, routine]
+                status:
+                  type: string
+                  enum: [pending, scheduled, in_progress, completed, cancelled]
+                priority:
+                  type: string
+                  enum: [low, medium, high, critical]
+                project_id:
+                  type: string
+                  format: uuid
+                assignee_id:
+                  type: string
+                  format: uuid
+                due_date:
+                  type: string
+                  format: date-time
+                label_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
       responses:
         '201':
           description: Task created
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Task' }
+              schema:
+                $ref: '#/components/schemas/Task'
+
+  /tasks/quick:
+    post:
+      tags: [Tasks]
+      summary: Create task from natural language input
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [input]
+              properties:
+                input:
+                  type: string
+                  description: Natural language task description
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+
+  /tasks/extract:
+    post:
+      tags: [Tasks]
+      summary: Extract task data from natural language
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [input]
+              properties:
+                input:
+                  type: string
+      responses:
+        '200':
+          description: Extracted task data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  priority:
+                    type: string
+                  due_date:
+                    type: string
+                  estimated_duration:
+                    type: integer
+
+  /tasks/priorities:
+    get:
+      tags: [Tasks]
+      summary: Get prioritized task suggestions
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Prioritized tasks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Task'
+                  weights:
+                    type: object
+
+  /tasks/{id}:
+    get:
+      tags: [Tasks]
+      summary: Get task by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+
+    put:
+      tags: [Tasks]
+      summary: Update task
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Task'
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+
+    delete:
+      tags: [Tasks]
+      summary: Delete task
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Task deleted
+
+  /tasks/{id}/schedule:
+    post:
+      tags: [Tasks]
+      summary: Schedule a task
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Task scheduled
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /tasks/bulk:
+    patch:
+      tags: [Tasks]
+      summary: Bulk update tasks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [task_ids]
+              properties:
+                task_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                updates:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    priority:
+                      type: string
+                    assignee_id:
+                      type: string
+                      format: uuid
+      responses:
+        '200':
+          description: Bulk update completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated_count:
+                    type: integer
+                  failed_count:
+                    type: integer
+                  total:
+                    type: integer
+
+    delete:
+      tags: [Tasks]
+      summary: Bulk delete tasks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [task_ids]
+              properties:
+                task_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        '200':
+          description: Bulk delete completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted_count:
+                    type: integer
+                  failed_count:
+                    type: integer
+                  total:
+                    type: integer
+
+  /tasks/bulk/move:
+    post:
+      tags: [Tasks]
+      summary: Bulk move tasks to project
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [task_ids, project_id]
+              properties:
+                task_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                project_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Tasks moved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  moved_count:
+                    type: integer
+                  failed_count:
+                    type: integer
+                  total:
+                    type: integer
+
+  # Comments
+  /tasks/{taskId}/comments:
+    get:
+      tags: [Comments]
+      summary: Get task comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+
+    post:
+      tags: [Comments]
+      summary: Create comment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                parent_comment_id:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+
+  /tasks/{taskId}/comments/{id}:
+    put:
+      tags: [Comments]
+      summary: Update comment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+      responses:
+        '200':
+          description: Comment updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+
+    delete:
+      tags: [Comments]
+      summary: Delete comment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Comment deleted
+
+  # Labels
+  /labels:
+    get:
+      tags: [Labels]
+      summary: List labels
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of labels
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Label'
+
+    post:
+      tags: [Labels]
+      summary: Create label
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                color:
+                  type: string
+                project_id:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Label created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Label'
+
+  /labels/{id}:
+    put:
+      tags: [Labels]
+      summary: Update label
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                color:
+                  type: string
+      responses:
+        '200':
+          description: Label updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Label'
+
+    delete:
+      tags: [Labels]
+      summary: Delete label
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Label deleted
+
+  # Schedule
+  /schedule:
+    get:
+      tags: [Schedule]
+      summary: Get schedule slots
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Schedule slots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScheduleSlot'
+
+  # Habits
+  /habits:
+    get:
+      tags: [Habits]
+      summary: List habits
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of habits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Habit'
+
+    post:
+      tags: [Habits]
+      summary: Create habit
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Habit'
+      responses:
+        '201':
+          description: Habit created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habit'
+
+  # Routines
+  /routines:
+    get:
+      tags: [Routines]
+      summary: List routines
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of routines
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Routine'
+
+    post:
+      tags: [Routines]
+      summary: Create routine
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Routine'
+      responses:
+        '201':
+          description: Routine created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Routine'
+
+  # Time Tracking
+  /time-entries:
+    get:
+      tags: [Time Tracking]
+      summary: List time entries
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: task_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of time entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimeEntry'
+
+    post:
+      tags: [Time Tracking]
+      summary: Create time entry
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [task_id]
+              properties:
+                task_id:
+                  type: string
+                  format: uuid
+                start_time:
+                  type: string
+                  format: date-time
+                end_time:
+                  type: string
+                  format: date-time
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Time entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeEntry'
+
+  /timer:
+    get:
+      tags: [Time Tracking]
+      summary: Get current timer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current timer state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  running:
+                    type: boolean
+                  task_id:
+                    type: string
+                    format: uuid
+                  start_time:
+                    type: string
+                    format: date-time
+                  elapsed:
+                    type: integer
+
+    post:
+      tags: [Time Tracking]
+      summary: Start timer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [task_id]
+              properties:
+                task_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Timer started
+          content:
+            application/json:
+              schema:
+                type: object
+
+    delete:
+      tags: [Time Tracking]
+      summary: Stop timer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Timer stopped
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeEntry'
+
+  # Notifications
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: read
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+
+  /notifications/{id}/read:
+    post:
+      tags: [Notifications]
+      summary: Mark notification as read
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification marked as read
+
+  # Search
+  /search:
+    get:
+      tags: [Search]
+      summary: Full-text search
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [task, project, comment]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                  total:
+                    type: integer

@@ -9,7 +9,10 @@ export const pool = new Pool({
   database: process.env.DB_NAME || 'omni',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+  ssl:
+    process.env.NODE_ENV === 'production'
+      ? { rejectUnauthorized: false }
+      : undefined,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
@@ -20,4 +23,7 @@ pool.on('error', err => {
   process.exit(-1)
 })
 
-export const query = (text: string, params?: any[]) => pool.query(text, params)
+export const query = (
+  text: string,
+  params?: (string | number | boolean | Date | null | unknown)[]
+) => pool.query(text, params)

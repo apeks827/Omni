@@ -56,6 +56,12 @@ export const createTaskSchema = z.object({
   project_id: z.string().uuid().optional(),
   assignee_id: z.string().uuid().optional(),
   due_date: z.string().datetime().optional(),
+  label_ids: z.array(z.string().uuid()).optional(),
+  preferred_device: z.array(z.enum(['desktop', 'mobile', 'tablet'])).optional(),
+  preferred_time_of_day: z
+    .array(z.enum(['morning', 'afternoon', 'evening', 'night']))
+    .optional(),
+  context_tags: z.array(z.string().max(50)).optional(),
 })
 
 export const updateTaskSchema = z.object({
@@ -66,6 +72,12 @@ export const updateTaskSchema = z.object({
   project_id: z.string().uuid().optional().nullable(),
   assignee_id: z.string().uuid().optional().nullable(),
   due_date: z.string().datetime().optional().nullable(),
+  label_ids: z.array(z.string().uuid()).optional(),
+  preferred_device: z.array(z.enum(['desktop', 'mobile', 'tablet'])).optional(),
+  preferred_time_of_day: z
+    .array(z.enum(['morning', 'afternoon', 'evening', 'night']))
+    .optional(),
+  context_tags: z.array(z.string().max(50)).optional(),
 })
 
 export const createLabelSchema = z.object({
@@ -88,4 +100,146 @@ export const updateLabelSchema = z.object({
 
 export const uuidParamSchema = z.object({
   id: z.string().uuid('Invalid ID format'),
+})
+
+export const quickTaskSchema = z.object({
+  input: z.string().min(1).max(5000),
+})
+
+export const extractResponseSchema = z.object({
+  title: z.string().min(1),
+  due_date: z.string().datetime().optional(),
+  due_time: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional(),
+  priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  location: z.string().max(255).optional(),
+  category: z.string().max(100).optional(),
+  confidence: z.number().min(0).max(1).optional(),
+})
+
+export const extractRequestSchema = z.object({
+  input: z.string().min(1).max(5000),
+})
+
+export const bulkUpdateTaskSchema = z
+  .object({
+    task_ids: z.array(z.string()).min(1).max(100),
+    updates: z
+      .object({
+        status: z.enum(['todo', 'in_progress', 'done']).optional(),
+        priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+        project_id: z.string().optional().nullable(),
+        label_ids: z.array(z.string()).optional(),
+      })
+      .optional(),
+  })
+  .refine(data => data.updates && Object.keys(data.updates).length > 0, {
+    message: 'At least one update field is required',
+  })
+
+export const bulkDeleteTaskSchema = z.object({
+  task_ids: z.array(z.string()).min(1).max(100),
+})
+
+export const bulkMoveTaskSchema = z.object({
+  task_ids: z.array(z.string()).min(1).max(100),
+  project_id: z.string(),
+})
+
+export const searchTasksSchema = z.object({
+  query: z.string().min(1).max(500),
+  status: z.enum(['todo', 'in_progress', 'done']).optional(),
+  priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  project_id: z.string().uuid().optional(),
+  label_id: z.string().uuid().optional(),
+})
+
+export const searchSuggestionsSchema = z.object({
+  prefix: z.string().min(1).max(100),
+  limit: z.number().int().min(1).max(20).optional(),
+})
+
+export const searchTitlesSchema = z.object({
+  prefix: z.string().min(1).max(100),
+  limit: z.number().int().min(1).max(50).optional(),
+})
+
+export const exportTasksSchema = z.object({
+  format: z.enum(['json', 'csv', 'markdown', 'ical']),
+  filters: z
+    .object({
+      status: z.enum(['todo', 'in_progress', 'done']).optional(),
+      priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+      project_id: z.string().uuid().optional(),
+      label_id: z.string().uuid().optional(),
+      date_from: z.string().datetime().optional(),
+      date_to: z.string().datetime().optional(),
+    })
+    .optional(),
+})
+
+export const importPreviewSchema = z.object({
+  data: z.string().min(1),
+  format: z.enum(['json', 'csv', 'markdown', 'ical']),
+  mapping: z.record(z.string(), z.string()).optional(),
+})
+
+export const importTasksSchema = z.object({
+  data: z.string().min(1),
+  format: z.enum(['json', 'csv', 'markdown', 'ical']),
+  mapping: z.record(z.string(), z.string()).optional(),
+  options: z
+    .object({
+      skip_duplicates: z.boolean().optional(),
+      update_existing: z.boolean().optional(),
+      preserve_ids: z.boolean().optional(),
+    })
+    .optional(),
+})
+
+export const createGoalSchema = z.object({
+  title: z.string().min(1).max(255),
+  description: z.string().max(2000).optional(),
+  status: z
+    .enum(['draft', 'active', 'completed', 'archived', 'cancelled'])
+    .optional(),
+  timeframe_type: z.enum(['quarter', 'year', 'custom']).optional(),
+  start_date: z.string(),
+  end_date: z.string(),
+})
+
+export const updateGoalSchema = z.object({
+  title: z.string().min(1).max(255).optional(),
+  description: z.string().max(2000).optional().nullable(),
+  status: z
+    .enum(['draft', 'active', 'completed', 'archived', 'cancelled'])
+    .optional(),
+  timeframe_type: z.enum(['quarter', 'year', 'custom']).optional(),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+  progress_percentage: z.number().min(0).max(100).optional(),
+})
+
+export const createKeyResultSchema = z.object({
+  title: z.string().min(1).max(255),
+  target_value: z.number().min(0),
+  current_value: z.number().min(0).optional(),
+  measurement_type: z.enum(['numeric', 'percentage', 'boolean']).optional(),
+  unit: z.string().max(50).optional(),
+})
+
+export const updateKeyResultSchema = z.object({
+  title: z.string().min(1).max(255).optional(),
+  target_value: z.number().min(0).optional(),
+  current_value: z.number().min(0).optional(),
+  measurement_type: z.enum(['numeric', 'percentage', 'boolean']).optional(),
+  unit: z.string().max(50).optional().nullable(),
+  progress_percentage: z.number().min(0).max(100).optional(),
+})
+
+export const linkTaskToGoalSchema = z.object({
+  goal_id: z.string().uuid(),
+  key_result_id: z.string().uuid().optional(),
 })

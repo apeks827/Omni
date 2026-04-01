@@ -6,6 +6,9 @@ export interface User {
   workspace_id: string
   timezone?: string
   preferences?: Record<string, unknown>
+  energy_pattern?: { peak_hours: number[]; low_hours: number[] }
+  low_energy_mode?: boolean
+  last_activity_at?: Date
   created_at: Date
   updated_at: Date
 }

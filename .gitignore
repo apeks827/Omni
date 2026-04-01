@@ -6,3 +6,6 @@ dist/
 .vite
 staging/.env.staging
 prod/.env.prod
+storybook-static/
+coverage/
+uploads/

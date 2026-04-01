@@ -29,13 +29,13 @@ import { Button } from './design-system'
 
 #### Props
 
-| Prop      | Type                                                                        | Default     | Description                  |
-| --------- | --------------------------------------------------------------------------- | ----------- | ---------------------------- |
+| Prop      | Type                                                                                     | Default     | Description                  |
+| --------- | ---------------------------------------------------------------------------------------- | ----------- | ---------------------------- |
 | variant   | `'primary' \| 'secondary' \| 'success' \| 'danger' \| 'warning' \| 'outline' \| 'ghost'` | `'primary'` | Visual style of the button   |
-| size      | `'sm' \| 'md' \| 'lg'`                                                      | `'md'`      | Size of the button           |
-| isLoading | `boolean`                                                                   | `false`     | Show loading state           |
-| leftIcon  | `ReactNode`                                                                 | `undefined` | Icon to show before children |
-| rightIcon | `ReactNode`                                                                 | `undefined` | Icon to show after children  |
+| size      | `'sm' \| 'md' \| 'lg'`                                                                   | `'md'`      | Size of the button           |
+| isLoading | `boolean`                                                                                | `false`     | Show loading state           |
+| leftIcon  | `ReactNode`                                                                              | `undefined` | Icon to show before children |
+| rightIcon | `ReactNode`                                                                              | `undefined` | Icon to show after children  |
 
 ### Badge
 
@@ -65,8 +65,7 @@ A flexbox layout primitive for consistent vertical and horizontal spacing.
 
 ```tsx
 import { Stack } from './design-system'
-
-<Stack spacing="lg">
+;<Stack spacing="lg">
   <Text>First block</Text>
   <Text>Second block</Text>
 </Stack>

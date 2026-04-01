@@ -1,4 +1,4 @@
-import { Task, DashboardData } from '../types'
+import { Task, DashboardData, User } from '../types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -42,8 +42,55 @@ class ApiClient {
     return response.json()
   }
 
-  async getTasks(): Promise<Task[]> {
-    return this.request<Task[]>('/tasks')
+  async getTasks(params?: {
+    limit?: number
+    offset?: number
+    status?: string
+    priority?: string
+    sortBy?: string
+    sortOrder?: 'asc' | 'desc'
+    context_device?: string
+    context_time_of_day?: string
+  }): Promise<{ tasks: Task[]; total: number }> {
+    const queryParams = new URLSearchParams()
+    if (params?.limit) queryParams.set('limit', params.limit.toString())
+    if (params?.offset) queryParams.set('offset', params.offset.toString())
+    if (params?.status) queryParams.set('status', params.status)
+    if (params?.priority) queryParams.set('priority', params.priority)
+    if (params?.sortBy) queryParams.set('sort_by', params.sortBy)
+    if (params?.sortOrder) queryParams.set('sort_order', params.sortOrder)
+    if (params?.context_device)
+      queryParams.set('context_device', params.context_device)
+    if (params?.context_time_of_day)
+      queryParams.set('context_time_of_day', params.context_time_of_day)
+
+    const query = queryParams.toString()
+    return this.request<{ tasks: Task[]; total: number }>(
+      `/tasks${query ? `?${query}` : ''}`
+    )
+  }
+
+  async getContextAwareTasks(params?: {
+    limit?: number
+    offset?: number
+    status?: string
+    priority?: string
+    context_device?: string
+    context_time_of_day?: string
+  }): Promise<{ tasks: Task[]; total: number }> {
+    const queryParams = new URLSearchParams()
+    if (params?.limit) queryParams.set('limit', params.limit.toString())
+    if (params?.offset) queryParams.set('offset', params.offset.toString())
+    if (params?.status) queryParams.set('status', params.status)
+    if (params?.priority) queryParams.set('priority', params.priority)
+    if (params?.context_device) queryParams.set('device', params.context_device)
+    if (params?.context_time_of_day)
+      queryParams.set('time_of_day', params.context_time_of_day)
+
+    const query = queryParams.toString()
+    return this.request<{ tasks: Task[]; total: number }>(
+      `/tasks/context-aware${query ? `?${query}` : ''}`
+    )
   }
 
   async createTask(
@@ -58,7 +105,14 @@ class ApiClient {
     })
   }
 
-  async updateTask(id: string, updates: Partial<Task>): Promise<Task> {
+  async updateTask(
+    id: string,
+    updates: Partial<Task> & {
+      preferred_device?: string[]
+      preferred_time_of_day?: string[]
+      context_tags?: string[]
+    }
+  ): Promise<Task> {
     return this.request<Task>(`/tasks/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
@@ -73,6 +127,267 @@ class ApiClient {
 
   async getDashboard(companyId: string): Promise<DashboardData> {
     return this.request<DashboardData>(`/companies/${companyId}/dashboard`)
+  }
+
+  async getCalendarDay(date: string): Promise<any> {
+    return this.request<any>(`/calendar/day?date=${date}`)
+  }
+
+  async getCalendarWeek(startDate: string): Promise<any> {
+    return this.request<any>(`/calendar/week?start_date=${startDate}`)
+  }
+
+  async rescheduleSlot(
+    slotId: string,
+    startTime: Date,
+    endTime: Date
+  ): Promise<any> {
+    return this.request<any>(`/calendar/slots/${slotId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ start_time: startTime, end_time: endTime }),
+    })
+  }
+
+  async reflowSchedule(
+    taskId: string,
+    newStartTime: Date
+  ): Promise<{
+    success: boolean
+    task_id: string
+    new_start_time: string
+    rebalanced: boolean
+    bumped: any[]
+  }> {
+    return this.request<any>('/calendar/reflow', {
+      method: 'POST',
+      body: JSON.stringify({
+        task_id: taskId,
+        new_start_time: newStartTime.toISOString(),
+      }),
+    })
+  }
+
+  async toggleLowEnergyMode(enabled: boolean): Promise<void> {
+    return this.request<void>('/users/me/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify({ low_energy_mode: enabled }),
+    })
+  }
+
+  async bulkUpdateTasks(
+    taskIds: string[],
+    updates: Partial<Task>
+  ): Promise<Task[]> {
+    return this.request<Task[]>('/tasks/bulk', {
+      method: 'PATCH',
+      body: JSON.stringify({ task_ids: taskIds, updates }),
+    })
+  }
+
+  async bulkDeleteTasks(taskIds: string[]): Promise<void> {
+    return this.request<void>('/tasks/bulk', {
+      method: 'DELETE',
+      body: JSON.stringify({ task_ids: taskIds }),
+    })
+  }
+
+  async getTaskActivities(
+    taskId: string,
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<import('../types').ActivityFeedResponse> {
+    return this.request<import('../types').ActivityFeedResponse>(
+      `/tasks/${taskId}/activities?limit=${limit}&offset=${offset}`
+    )
+  }
+
+  async getWorkspaceActivities(
+    workspaceId: string,
+    limit: number = 100,
+    offset: number = 0,
+    actionType?: string
+  ): Promise<import('../types').ActivityFeedResponse> {
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      offset: offset.toString(),
+    })
+    if (actionType) {
+      params.set('action_type', actionType)
+    }
+    return this.request<import('../types').ActivityFeedResponse>(
+      `/workspaces/${workspaceId}/activities?${params}`
+    )
+  }
+
+  async getUserActivities(
+    userId: string,
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<import('../types').ActivityFeedResponse> {
+    return this.request<import('../types').ActivityFeedResponse>(
+      `/users/${userId}/activities?limit=${limit}&offset=${offset}`
+    )
+  }
+
+  async getAnalytics(timeRange: 'week' | 'month' | 'all'): Promise<any> {
+    const now = new Date()
+    let startDate: Date
+
+    if (timeRange === 'week') {
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    } else if (timeRange === 'month') {
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    } else {
+      startDate = new Date(0)
+    }
+
+    return this.request<any>(
+      `/analytics/analytics?start_date=${startDate.toISOString()}&end_date=${now.toISOString()}`
+    )
+  }
+
+  async getGoals(status?: string): Promise<any[]> {
+    const query = status ? `?status=${status}` : ''
+    return this.request<any[]>(`/goals${query}`)
+  }
+
+  async getGoal(id: string): Promise<any> {
+    return this.request<any>(`/goals/${id}`)
+  }
+
+  async createGoal(goal: {
+    title: string
+    description?: string
+    status?: string
+    timeframe_type?: string
+    start_date: string
+    end_date: string
+  }): Promise<any> {
+    return this.request<any>('/goals', {
+      method: 'POST',
+      body: JSON.stringify(goal),
+    })
+  }
+
+  async updateGoal(id: string, updates: Partial<any>): Promise<any> {
+    return this.request<any>(`/goals/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    })
+  }
+
+  async deleteGoal(id: string): Promise<void> {
+    return this.request<void>(`/goals/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async getKeyResults(goalId: string): Promise<any[]> {
+    return this.request<any[]>(`/goals/${goalId}/key-results`)
+  }
+
+  async createKeyResult(
+    goalId: string,
+    kr: {
+      title: string
+      target_value: number
+      current_value?: number
+      measurement_type?: string
+      unit?: string
+    }
+  ): Promise<any> {
+    return this.request<any>(`/goals/${goalId}/key-results`, {
+      method: 'POST',
+      body: JSON.stringify(kr),
+    })
+  }
+
+  async updateKeyResult(id: string, updates: Partial<any>): Promise<any> {
+    return this.request<any>(`/key-results/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    })
+  }
+
+  async updateKeyResultProgress(
+    id: string,
+    current_value: number
+  ): Promise<any> {
+    return this.request<any>(`/key-results/${id}/progress`, {
+      method: 'PATCH',
+      body: JSON.stringify({ current_value }),
+    })
+  }
+
+  async deleteKeyResult(id: string): Promise<void> {
+    return this.request<void>(`/key-results/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async linkTaskToGoal(
+    taskId: string,
+    goal_id: string,
+    key_result_id?: string
+  ): Promise<any> {
+    return this.request<any>(`/tasks/${taskId}/link-goal`, {
+      method: 'POST',
+      body: JSON.stringify({ goal_id, key_result_id }),
+    })
+  }
+
+  async unlinkTaskFromGoal(taskId: string, goal_id: string): Promise<void> {
+    return this.request<void>(`/tasks/${taskId}/link-goal?goal_id=${goal_id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async getTaskGoals(taskId: string): Promise<any[]> {
+    return this.request<any[]>(`/tasks/${taskId}/goals`)
+  }
+
+  async getGoalTasks(goalId: string): Promise<any[]> {
+    return this.request<any[]>(`/goals/${goalId}/tasks`)
+  }
+
+  async login(
+    email: string,
+    password: string
+  ): Promise<{ token: string; user: User }> {
+    const result = await this.request<{ token: string; user: User }>(
+      '/auth/login',
+      {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      }
+    )
+    this.setAuthToken(result.token)
+    return result
+  }
+
+  async register(
+    name: string,
+    email: string,
+    password: string
+  ): Promise<{ token: string; user: User }> {
+    const result = await this.request<{ token: string; user: User }>(
+      '/auth/register',
+      {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password }),
+      }
+    )
+    this.setAuthToken(result.token)
+    return result
+  }
+
+  async getCurrentUser(): Promise<User> {
+    const result = await this.request<{ user: User }>('/auth/me')
+    return result.user
+  }
+
+  logout(): void {
+    this.clearAuthToken()
   }
 
   setAuthToken(token: string): void {

@@ -1,4 +1,5 @@
 # Strategic Alignment (CEO-DEL-001)
+
 Immediate delegation to Product and Engineering lanes to establish organizational momentum.
 
 - **Status:** Active

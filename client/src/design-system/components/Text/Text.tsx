@@ -3,8 +3,38 @@ import { colors, typography } from '../../tokens'
 
 interface TextProps {
   children: React.ReactNode
-  variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'body' | 'caption' | 'overline'
-  color?: 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'light' | 'dark' | 'white' | 'gray100' | 'gray200' | 'gray300' | 'gray400' | 'gray500' | 'gray600' | 'gray700' | 'gray800' | 'gray900' | 'focus' | 'bg' | 'border'
+  variant?:
+    | 'h1'
+    | 'h2'
+    | 'h3'
+    | 'h4'
+    | 'h5'
+    | 'h6'
+    | 'body'
+    | 'caption'
+    | 'overline'
+  color?:
+    | 'primary'
+    | 'secondary'
+    | 'success'
+    | 'danger'
+    | 'warning'
+    | 'info'
+    | 'light'
+    | 'dark'
+    | 'white'
+    | 'gray100'
+    | 'gray200'
+    | 'gray300'
+    | 'gray400'
+    | 'gray500'
+    | 'gray600'
+    | 'gray700'
+    | 'gray800'
+    | 'gray900'
+    | 'focus'
+    | 'bg'
+    | 'border'
   weight?: keyof typeof typography.fontWeight
   align?: 'left' | 'center' | 'right' | 'justify'
   truncate?: boolean
@@ -22,7 +52,10 @@ const Text: React.FC<TextProps> = ({
 }) => {
   const getVariantStyles = (): React.CSSProperties => {
     const base: React.CSSProperties = {
-      color: typeof colors[color] === 'string' ? colors[color] as string : colors.dark,
+      color:
+        typeof colors[color] === 'string'
+          ? (colors[color] as string)
+          : colors.dark,
       fontWeight: typography.fontWeight[weight],
       textAlign: align,
       overflow: truncate ? 'hidden' : 'visible',

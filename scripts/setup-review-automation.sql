@@ -1,0 +1,43 @@
+-- Setup script for review automation with Technical Critic
+-- Run this after migration 20 to configure automatic reviews
+
+-- Example: Create review template for tasks moving to 'done' status
+-- This will trigger Technical Critic review automatically
+
+-- Replace these UUIDs with actual values from your system:
+-- workspace_id: Your workspace UUID
+-- project_id: Your project UUID (optional, can be NULL for workspace-wide)
+-- goal_id: Your goal UUID (optional)
+-- reviewer_agent_id: Technical Critic agent UUID (3b92a5d0-ce70-4f10-8f14-54adbccd6667)
+
+-- Example template:
+-- INSERT INTO handoff_templates (
+--     workspace_id,
+--     project_id,
+--     goal_id,
+--     from_status,
+--     next_title,
+--     next_description,
+--     review_template,
+--     reviewer_agent_id,
+--     approved_status,
+--     revise_status
+-- ) VALUES (
+--     'YOUR_WORKSPACE_ID',
+--     'YOUR_PROJECT_ID',
+--     'YOUR_GOAL_ID',
+--     'done',
+--     'Technical Review Required',
+--     'This task requires Technical Critic approval before final completion',
+--     true,
+--     '3b92a5d0-ce70-4f10-8f14-54adbccd6667',
+--     'completed',
+--     'in_progress'
+-- );
+
+-- Usage:
+-- 1. When a task status changes to 'done', a review_task is automatically created
+-- 2. Technical Critic reviews the task
+-- 3. POST /api/handoff/review/:taskId with { "decision": "approved" } -> task moves to 'completed'
+-- 4. POST /api/handoff/review/:taskId with { "decision": "revise" } -> task moves back to 'in_progress'
+-- 5. GET /api/handoff/reviews/pending?agent_id=3b92a5d0-ce70-4f10-8f14-54adbccd6667 -> list pending reviews

@@ -44,6 +44,55 @@ For files in the `archive/` directory or marked as legacy:
 - **Pattern validation**: Verify glob patterns and regex patterns are valid strings before use
 - **Path validation**: Confirm file paths are absolute and correctly formatted
 
+## API Parameter Validation Protocol
+
+When making Paperclip API calls, agents must follow these rules to prevent validation errors:
+
+### Optional Parameters
+
+- **NEVER pass string "null"** - omit the parameter entirely if no value
+- **NEVER pass sentinel values** like -1, 0, or empty strings for optional IDs
+- **Omit parameters** when you don't have a value, don't try to signal absence
+
+**Bad:**
+
+```
+?assigneeAgentId=null
+?after=-1
+?parentId=0
+```
+
+**Good:**
+
+```
+(omit the parameter entirely)
+?assigneeAgentId=c6ba966a-58e2-447a-acb6-fd57a6d254b1
+```
+
+### Array Parameters
+
+- **Check API documentation** for array parameter support
+- Most Paperclip query params do NOT support comma-separated values
+- Use separate API calls or check for dedicated array endpoints
+
+**Bad:**
+
+```
+?assigneeAgentId=uuid1,uuid2,uuid3
+```
+
+**Good:**
+
+```
+Make separate calls or use dedicated bulk endpoints
+```
+
+### UUID Validation
+
+- All agent IDs, issue IDs, and entity IDs must be valid UUIDs
+- Never pass partial IDs, integers, or malformed strings
+- Validate UUID format before making API calls
+
 ## Violation Response
 
 If an agent attempts to overwrite a file without following protocol:
@@ -58,3 +107,19 @@ If an agent attempts to overwrite a file without following protocol:
 - Regular audits of file operations
 - Tracking of protocol adherence
 - Updates to procedures based on discovered issues
+
+## Missing Document Protocol
+
+When a referenced document does not exist:
+
+1. **Search first**: Use `glob` tool to find similar files in the directory
+2. **Create if absent**: If document is referenced but doesn't exist, create it
+   - Check for similar filenames (e.g., `file.ext` → `file.ts` if expecting TypeScript)
+   - Use existing documents as templates for format guidance
+3. **Write from scratch**: If no template exists, create the document with:
+   - Clear header/title
+   - Relevant sections based on document type
+   - Placeholder content marked with `TODO` where appropriate
+4. **Log the creation**: Comment in the relevant issue noting the document was created
+
+**Never fail on missing documents** - create them instead.

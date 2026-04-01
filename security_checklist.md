@@ -1,13 +1,17 @@
 # Security Checklist for Omni Task Manager
 
+**Last Updated:** 2026-03-31 (Auth Audit OMN-633)
+
 ## Authentication & Authorization
 
-- [ ] All API endpoints require authentication
-- [ ] JWT tokens are properly validated with correct secret
-- [ ] Token expiration is enforced (24-hour default)
-- [ ] Passwords are hashed using bcrypt with appropriate salt rounds
-- [ ] User permissions are properly enforced (workspace isolation)
-- [ ] Route-specific authorization checks implemented where needed
+- [x] All API endpoints require authentication
+- [x] JWT tokens are properly validated with correct secret
+- [x] Token expiration is enforced (30-day default, 30-day inactivity timeout)
+- [x] Passwords are hashed using bcrypt with appropriate salt rounds (12 rounds)
+- [x] User permissions are properly enforced (workspace isolation)
+- [x] Route-specific authorization checks implemented where needed
+- [x] Account lockout after 5 failed attempts (15 min lockout)
+- [x] Password reset tokens are cryptographically secure (32 bytes, hashed)
 
 ## Data Protection
 
@@ -15,21 +19,23 @@
 - [ ] Data is properly isolated by workspace_id
 - [ ] Sensitive data is not exposed in client responses (e.g., password hashes)
 - [ ] Input validation is performed on all API endpoints
-- [ ] Rate limiting is implemented to prevent abuse
-- [ ] Proper CORS configuration to prevent XSS attacks
+- [x] Rate limiting is implemented to prevent abuse
+- [x] Proper CORS configuration to prevent XSS attacks
 
 ## Secrets Management
 
-- [ ] Environment variables are used for sensitive configuration
-- [ ] Default JWT secret is replaced with strong random value in production
+- [x] Environment variables are used for sensitive configuration
+- [x] Default JWT secret is replaced with strong random value in production
+- [x] JWT secret validation enforced at startup (minimum 32 characters)
+- [x] Secure secret generation documented in .env.example
 - [ ] Database credentials are stored securely
 - [ ] No secrets are hardcoded in the source code
 - [ ] Secure .env file handling and permissions
 
 ## API Security
 
-- [ ] Helmet.js is used to protect against common web vulnerabilities
-- [ ] Proper HTTP status codes are returned
+- [x] Helmet.js is used to protect against common web vulnerabilities
+- [x] Proper HTTP status codes are returned
 - [ ] Error messages don't expose sensitive information
 - [ ] File uploads (if any) are properly validated and secured
 - [ ] All dependencies are kept up to date to address known vulnerabilities

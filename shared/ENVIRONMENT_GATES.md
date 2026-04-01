@@ -129,14 +129,14 @@ git status
 ./deploy-staging.sh
 
 # 4. Smoke test
-./stage-smoke-test.sh
+./scripts/smoke-test.sh staging
 ```
 
 ### Production Deployment
 
 ```bash
 # 1. Verify staging stable
-./stage-smoke-test.sh
+./scripts/smoke-test.sh production
 
 # 2. Create release tag
 git tag -a v1.x.x -m "Release notes"

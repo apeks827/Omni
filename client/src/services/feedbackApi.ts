@@ -67,20 +67,19 @@ export class FeedbackApiClient {
   ): Promise<FeedbackResponse> {
     const formData = new FormData()
 
-    // Add text fields
+    // Add text fields (backend expects snake_case)
     formData.append('category', feedback.category)
     formData.append('description', feedback.description)
-    if (feedback.reproSteps) formData.append('reproSteps', feedback.reproSteps)
+    if (feedback.reproSteps) formData.append('repro_steps', feedback.reproSteps)
     if (feedback.contactPermission !== undefined) {
-      formData.append('contactPermission', String(feedback.contactPermission))
+      formData.append('contact_permission', String(feedback.contactPermission))
     }
     if (feedback.severity) formData.append('severity', feedback.severity)
 
-    // Add auto-captured fields
+    // Add auto-captured fields (backend expects snake_case)
     formData.append('page', feedback.page)
-    formData.append('sessionId', feedback.sessionId)
-    formData.append('appVersion', feedback.appVersion)
-    formData.append('timestamp', feedback.timestamp)
+    formData.append('session_id', feedback.sessionId)
+    formData.append('app_version', feedback.appVersion)
 
     // Add environment hints if provided
     if (feedback.environment) {

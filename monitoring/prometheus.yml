@@ -1,0 +1,63 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'omni'
+    environment: '${ENVIRONMENT:-development}'
+
+rule_files:
+  - 'alerting-rules.yml'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'omni-app'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['${STAGING_HOST:-localhost}:3000']
+        labels:
+          service: 'omni-app'
+          environment: 'staging'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '(.+):\d+'
+        replacement: '${1}'
+
+  - job_name: 'omni-api'
+    metrics_path: '/api/metrics'
+    static_configs:
+      - targets: ['${STAGING_HOST:-localhost}:3000']
+        labels:
+          service: 'omni-api'
+          environment: 'staging'
+
+  - job_name: 'omni-staging'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['${STAGING_HOST:-192.168.1.58}:3000']
+        labels:
+          service: 'omni-app'
+          environment: 'staging'
+
+  - job_name: 'omni-production'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['${PROD_HOST:-localhost}:3000']
+        labels:
+          service: 'omni-app'
+          environment: 'production'
+    scrape_interval: 30s
+
+storage:
+  tsdb:
+    path: '/prometheus'
+    retention.time: '15d'
+    retention.size: '10GB'
