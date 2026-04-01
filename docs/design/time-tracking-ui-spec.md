@@ -440,6 +440,17 @@ This document defines the user interface and interaction patterns for the time t
 - Virtual scrolling: For time log lists >100 entries
 - Debounce manual entry duration calculation: 300ms
 - Cache Pomodoro settings locally
+- Strategy selector response: <50ms
+
+## New Features - Timer Strategy Selector
+
+### Strategy Selection Component
+
+- **Location**: TimerWidget controls area
+- **Options**: Auto, Manual, Pomodoro modes
+- **Behavior**: Instant mode switching without timer reset
+- **Accessibility**: Full keyboard navigation support
+- **Visual Feedback**: Selected strategy indicator
 
 ## Success Metrics
 
@@ -447,6 +458,7 @@ This document defines the user interface and interaction patterns for the time t
 - Timer sync latency: <100ms to server
 - Manual entry form: <2s to open and render
 - Analytics load time: <500ms for 30-day range
-- Mobile touch target size: ≥44px
+- Mobile touch target size: ≥44px (Enhanced)
 - Keyboard navigation: All actions accessible
+- Strategy selector response: <50ms
 - Accessibility score: WCAG 2.1 AA compliant
